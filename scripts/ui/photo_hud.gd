@@ -17,6 +17,11 @@ var placement_targets := PackedVector2Array():
 	set(value):
 		placement_targets = value
 		queue_redraw()
+## Framing scores full marks inside this radius of a target (normalized screen units).
+var placement_ok_radius := 0.06:
+	set(value):
+		placement_ok_radius = value
+		queue_redraw()
 
 var _camera: PhotoCamera
 var _dials: Array[SettingDial] = []
@@ -50,8 +55,15 @@ func _draw() -> void:
 	for i in [1, 2]:
 		draw_line(Vector2(s.x * i / 3.0, 0), Vector2(s.x * i / 3.0, s.y), guide_color)
 		draw_line(Vector2(0, s.y * i / 3.0), Vector2(s.x, s.y * i / 3.0), guide_color)
+	# The full-marks framing zones: ellipses because the radius is in normalized
+	# units, so it stretches with the screen's aspect ratio.
 	for target in placement_targets:
-		draw_arc(target * s, 10.0, 0.0, TAU, 24, guide_color, 2.0)
+		var zone := PackedVector2Array()
+		for i in 33:
+			var angle := TAU * i / 32.0
+			zone.append(target * s + Vector2(cos(angle) * s.x, sin(angle) * s.y) * placement_ok_radius)
+		draw_polyline(zone, guide_color, 1.5, true)
+		draw_circle(target * s, 2.5, guide_color)
 	var c := s * 0.5
 	draw_line(c - Vector2(6, 0), c + Vector2(6, 0), Color.WHITE)
 	draw_line(c - Vector2(0, 6), c + Vector2(0, 6), Color.WHITE)
@@ -86,7 +98,7 @@ func dial(setting: PhotoCamera.Setting) -> SettingDial:
 
 func show_focus(focus_m: float, subject_m: float) -> void:
 	var subject_text := "%.1f m" % subject_m if subject_m > 0.0 else "--"
-	_settings_label.text = "Focus %.1f m  ·  Subject %s\nQ/E pick dial  ·  R/F turn it\nWheel focus  ·  RMB autofocus  ·  Esc mouse" % [
+	_settings_label.text = "Focus %.1f m  ·  Subject %s\nQ/E pick dial  ·  R/F turn it\nWheel focus  ·  RMB autofocus  ·  M music  ·  Esc mouse" % [
 		focus_m, subject_text,
 	]
 

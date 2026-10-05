@@ -50,6 +50,11 @@ func _test_placement() -> void:
 	_near("placement on a thirds point", PhotoScoring.placement_score(Vector2(2.0 / 3.0, 1.0 / 3.0), _cfg), 1.0, 1e-6)
 	_near("placement dead center", PhotoScoring.placement_score(Vector2(0.5, 0.5), _cfg), 1.0, 1e-6)
 	_check("placement in the corner is poor", PhotoScoring.placement_score(Vector2.ZERO, _cfg) < 0.01)
+	_near("placement near a thirds point still scores full", PhotoScoring.placement_score(Vector2(1.0 / 3.0 + 0.05, 1.0 / 3.0), _cfg), 1.0, 1e-6)
+	# Worst spot between the center and a thirds point is about 0.118 from both.
+	var between := PhotoScoring.placement_score(Vector2(5.0 / 12.0, 5.0 / 12.0), _cfg)
+	_check("placement between targets is decent (%.2f)" % between, between > 0.7 and between < 0.85)
+	_check("placement near the edge is poor", PhotoScoring.placement_score(Vector2(0.05, 0.5), _cfg) < 0.05)
 
 
 func _test_stars() -> void:

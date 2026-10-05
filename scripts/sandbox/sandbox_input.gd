@@ -18,6 +18,7 @@ static func ensure_actions() -> void:
 	_add("setting_prev", [_key(KEY_Q), _button(JOY_BUTTON_LEFT_SHOULDER)])
 	_add("value_up", [_key(KEY_R), _key(KEY_UP), _button(JOY_BUTTON_DPAD_UP)])
 	_add("value_down", [_key(KEY_F), _key(KEY_DOWN), _button(JOY_BUTTON_DPAD_DOWN)])
+	_add("toggle_music", [_key(KEY_M), _button(JOY_BUTTON_BACK)])
 	_add("toggle_mouse", [_key(KEY_ESCAPE), _button(JOY_BUTTON_START)])
 
 

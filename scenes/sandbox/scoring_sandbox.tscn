@@ -1,4 +1,4 @@
-[gd_scene load_steps=21 format=3]
+[gd_scene load_steps=22 format=3]
 
 [ext_resource type="Script" path="res://scripts/sandbox/scoring_sandbox.gd" id="1_root"]
 [ext_resource type="Resource" path="res://resources/scoring/default_scoring_config.tres" id="2_cfg"]
@@ -7,6 +7,7 @@
 [ext_resource type="Script" path="res://scripts/photo/photo_subject.gd" id="5_subject"]
 [ext_resource type="Script" path="res://scripts/ui/photo_hud.gd" id="6_hud"]
 [ext_resource type="Script" path="res://scripts/ui/star_row.gd" id="7_stars"]
+[ext_resource type="AudioStream" uid="uid://da1anhwvtsa5o" path="res://assets/audio/music/as_you_fall_maybe.mp3" id="8_music"]
 
 [sub_resource type="ProceduralSkyMaterial" id="SkyMaterial_1"]
 sky_top_color = Color(0.32, 0.55, 0.9, 1)
@@ -157,6 +158,11 @@ mesh = SubResource("PillarMesh_1")
 
 [node name="Shape" type="CollisionShape3D" parent="Props/PillarFar"]
 shape = SubResource("PillarShape_1")
+
+[node name="Music" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("8_music")
+volume_db = -10.0
+autoplay = true
 
 [node name="HUD" type="CanvasLayer" parent="."]
 

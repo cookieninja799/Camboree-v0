@@ -18,6 +18,7 @@ var best_stars := 0
 
 @onready var _camera: PhotoCamera = $Player/Head/PhotoCamera
 @onready var _hud: PhotoHud = $HUD/Overlay
+@onready var _music: AudioStreamPlayer = $Music
 
 
 func _ready() -> void:
@@ -26,6 +27,7 @@ func _ready() -> void:
 	_camera.scene_ev = scene_ev
 	_camera.shot_taken.connect(_on_shot_taken)
 	_hud.placement_targets = config.placement_targets
+	_hud.placement_ok_radius = config.placement_ok_radius
 	_hud.bind_camera(_camera)
 	start_round()
 
@@ -34,6 +36,11 @@ func _process(_delta: float) -> void:
 	var subject := _camera.pick_subject()
 	var subject_depth := _camera.view_depth(subject.key_point()) if subject else -1.0
 	_hud.show_focus(_camera.focus_distance, subject_depth)
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed("toggle_music"):
+		_music.stream_paused = not _music.stream_paused
 
 
 func start_round() -> void:

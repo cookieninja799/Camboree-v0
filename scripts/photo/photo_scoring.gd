@@ -78,13 +78,13 @@ static func exposure_score(error_stops: float, cfg: ScoringConfig) -> float:
 	return 1.0 - smoothstep(cfg.exposure_ok_stops, cfg.exposure_bad_stops, absf(error_stops))
 
 
-## Best Gaussian fit of the subject's screen position to any placement target.
+## Framing: full marks inside the ok radius of the nearest target, easing to 0
+## at the bad radius.
 static func placement_score(screen_pos: Vector2, cfg: ScoringConfig) -> float:
-	var two_sigma_sq := 2.0 * cfg.placement_sigma * cfg.placement_sigma
-	var best := 0.0
+	var nearest := INF
 	for target in cfg.placement_targets:
-		best = maxf(best, exp(-screen_pos.distance_squared_to(target) / two_sigma_sq))
-	return best
+		nearest = minf(nearest, screen_pos.distance_to(target))
+	return 1.0 - smoothstep(cfg.placement_ok_radius, cfg.placement_bad_radius, nearest)
 
 
 static func stars(total: float, cfg: ScoringConfig) -> int:

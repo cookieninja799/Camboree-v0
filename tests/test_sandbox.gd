@@ -42,6 +42,9 @@ func _run() -> void:
 	var hidden := camera.capture(subject)
 	_check("pillar blocks the subject (visibility %.2f)" % hidden.visibility, hidden.visibility < 0.34)
 
+	var music: AudioStreamPlayer = scene.get_node("Music")
+	_check("background music autoplays and loops", music.autoplay and music.stream is AudioStreamMP3 and music.stream.loop)
+
 	_test_dials(scene, camera)
 	await _test_round(scene)
 	_test_sfx()

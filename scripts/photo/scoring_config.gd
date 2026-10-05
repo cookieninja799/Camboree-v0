@@ -23,8 +23,11 @@ extends Resource
 @export var exposure_bad_stops := 2.5
 
 @export_group("Placement")
-## Spread of the Gaussian around each target, in normalized screen units.
-@export var placement_sigma := 0.1
+## Within this distance of a target (normalized screen units) framing scores 1,
+## like the "close enough" zones focus and exposure have.
+@export var placement_ok_radius := 0.06
+## At or beyond this distance from every target, framing scores 0.
+@export var placement_bad_radius := 0.25
 ## Rule-of-thirds intersections plus the center.
 @export var placement_targets := PackedVector2Array([
 	Vector2(1.0 / 3.0, 1.0 / 3.0),

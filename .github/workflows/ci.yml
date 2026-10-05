@@ -1,0 +1,34 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    env:
+      GODOT_VERSION: 4.7.2
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Godot
+        run: |
+          curl -fsSL -o godot.zip "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          unzip -q godot.zip
+          sudo mv "Godot_v${GODOT_VERSION}-stable_linux.x86_64" /usr/local/bin/godot
+          godot --version
+
+      - name: Import project
+        run: godot --headless --import --path .
+
+      # Godot can exit 0 even when a script fails to parse, so also require the pass marker.
+      - name: Scoring tests
+        run: |
+          godot --headless --path . -s res://tests/test_scoring.gd 2>&1 | tee scoring.log
+          grep -q "SCORING TESTS PASSED" scoring.log
+
+      - name: Sandbox tests
+        run: |
+          godot --headless --path . -s res://tests/test_sandbox.gd 2>&1 | tee sandbox.log
+          grep -q "SANDBOX TESTS PASSED" sandbox.log

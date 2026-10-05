@@ -1,0 +1,96 @@
+extends SceneTree
+## Headless checks for scoring v0. Run from the project root:
+##   godot --headless --import --path .
+##   godot --headless --path . -s res://tests/test_scoring.gd
+
+const PASS_MARKER := "SCORING TESTS PASSED"
+
+var _failures := 0
+var _cfg := ScoringConfig.new()
+
+
+func _initialize() -> void:
+	_test_blur()
+	_test_exposure()
+	_test_placement()
+	_test_stars()
+	_test_full_shot()
+
+	if _failures == 0:
+		print(PASS_MARKER)
+	else:
+		printerr("%d scoring test(s) failed" % _failures)
+	quit(1 if _failures > 0 else 0)
+
+
+func _test_blur() -> void:
+	# 85mm f/1.8 focused at 3 m, subject at 3.5 m: clearly soft.
+	var wide := PhotoScoring.blur_mm(85.0, 1.8, 3.0, 3.5)
+	_near("blur 85mm f/1.8", wide, 0.1967, 0.001)
+	_near("focus 85mm f/1.8", PhotoScoring.focus_score(wide, _cfg), 0.0, 0.001)
+
+	# Same miss at f/8 is nearly acceptable.
+	var stopped := PhotoScoring.blur_mm(85.0, 8.0, 3.0, 3.5)
+	_near("blur 85mm f/8", stopped, 0.04426, 0.0005)
+	_near("focus 85mm f/8", PhotoScoring.focus_score(stopped, _cfg), 0.662, 0.005)
+
+	_near("blur on the focus plane", PhotoScoring.blur_mm(50.0, 1.4, 2.0, 2.0), 0.0, 1e-6)
+
+
+func _test_exposure() -> void:
+	_near("EV f/5.6 1/250 ISO 100", PhotoScoring.exposure_value(5.6, 1.0 / 250.0, 100.0), 12.937, 0.01)
+	var iso_drop := PhotoScoring.exposure_value(5.6, 1.0 / 250.0, 100.0) - PhotoScoring.exposure_value(5.6, 1.0 / 250.0, 200.0)
+	_near("doubling ISO is one stop", iso_drop, 1.0, 1e-4)
+	_check("stopping down reads as too dark", PhotoScoring.ev_error(8.0, 1.0 / 250.0, 100.0, 13.0) > 0.0)
+	_near("exposure 1 stop off", PhotoScoring.exposure_score(1.0, _cfg), 0.84375, 1e-4)
+	_near("exposure 3 stops off", PhotoScoring.exposure_score(-3.0, _cfg), 0.0, 1e-6)
+
+
+func _test_placement() -> void:
+	_near("placement on a thirds point", PhotoScoring.placement_score(Vector2(2.0 / 3.0, 1.0 / 3.0), _cfg), 1.0, 1e-6)
+	_near("placement dead center", PhotoScoring.placement_score(Vector2(0.5, 0.5), _cfg), 1.0, 1e-6)
+	_check("placement in the corner is poor", PhotoScoring.placement_score(Vector2.ZERO, _cfg) < 0.01)
+
+
+func _test_stars() -> void:
+	_check("0.19 is 0 stars", PhotoScoring.stars(0.19, _cfg) == 0)
+	_check("0.2 is 1 star", PhotoScoring.stars(0.2, _cfg) == 1)
+	_check("0.85 is 4 stars", PhotoScoring.stars(0.85, _cfg) == 4)
+	_check("0.9 is 5 stars", PhotoScoring.stars(0.9, _cfg) == 5)
+
+
+func _test_full_shot() -> void:
+	var shot := ShotData.new()
+	shot.aperture_n = 5.6
+	shot.shutter_s = 1.0 / 250.0
+	shot.iso = 100.0
+	shot.scene_ev = PhotoScoring.exposure_value(5.6, 1.0 / 250.0, 100.0)
+	shot.focus_distance_m = 4.0
+	shot.subject_distance_m = 4.0
+	shot.subject_screen_pos = Vector2(1.0 / 3.0, 2.0 / 3.0)
+
+	var perfect := PhotoScoring.score(shot, _cfg)
+	_near("perfect shot score", perfect.score, 1.0, 1e-4)
+	_check("perfect shot is 5 stars", perfect.stars == 5)
+	_check("perfect shot tip", perfect.tip == "Nailed it.")
+
+	# Scene 2 EV darker than the settings expect: the photo comes out too dark.
+	shot.scene_ev -= 2.0
+	var dark := PhotoScoring.score(shot, _cfg)
+	_check("underexposed worst pillar is exposure", dark.worst == "exposure")
+	_check("underexposed tip says too dark", dark.tip == "2.0 stops too dark.")
+
+	shot.visibility = 0.0
+	_near("hidden subject scores 0", PhotoScoring.score(shot, _cfg).score, 0.0, 1e-6)
+
+
+func _near(label: String, actual: float, expected: float, tolerance: float) -> void:
+	_check("%s (expected %.4f, got %.4f)" % [label, expected, actual], absf(actual - expected) <= tolerance)
+
+
+func _check(label: String, ok: bool) -> void:
+	if ok:
+		print("ok    ", label)
+	else:
+		_failures += 1
+		printerr("FAIL  ", label)

@@ -1,0 +1,23 @@
+# Godot 4 cache and import data (regenerated on open)
+.godot/
+/android/
+
+# Exports
+/build/
+/export/
+*.pck
+*.zip
+
+# Mono / C# (if ever enabled)
+.mono/
+data_*/
+mono_crash.*.json
+
+# OS / editor junk
+.DS_Store
+Thumbs.db
+*.tmp
+*.blend1
+*.blend2
+.vscode/
+.idea/

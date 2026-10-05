@@ -1,6 +1,6 @@
 # Camboree
 
-A cozy, silly, low-poly photography RPG for 1–4 players, set in **Ayesso City**. Think Stardew Valley meets Pokémon Snap, with some WarioWare and Katamari in the mix.
+A cozy, silly, low-poly photography RPG for 1–4 players. Think Stardew Valley meets Pokémon Snap, with some WarioWare and Katamari in the mix.
 
 - Game design document: [`docs/design/GDD.md`](docs/design/GDD.md)
 - Photo scoring spec: [`docs/design/scoring-v0.md`](docs/design/scoring-v0.md)

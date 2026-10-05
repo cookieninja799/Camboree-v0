@@ -5,8 +5,13 @@ extends Camera3D
 ## from the same numbers, so the two never disagree.
 
 signal shot_taken(shot: ShotData)
+## A setting value or the selected setting changed.
+signal settings_changed
 
-enum Setting { APERTURE, SHUTTER, ISO, FOCAL_LENGTH }
+## Ordered left to right as the HUD dials appear.
+enum Setting { ISO, SHUTTER, APERTURE, FOCAL_LENGTH }
+
+const SETTING_NAMES := ["ISO", "SHUTTER", "APERTURE", "ZOOM"]
 
 const APERTURES := [1.4, 2.0, 2.8, 4.0, 5.6, 8.0, 11.0, 16.0, 22.0]
 const SHUTTERS := [1.0 / 15.0, 1.0 / 30.0, 1.0 / 60.0, 1.0 / 125.0, 1.0 / 250.0, 1.0 / 500.0, 1.0 / 1000.0, 1.0 / 2000.0, 1.0 / 4000.0]
@@ -67,13 +72,19 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event.is_action_pressed("focus_near"):
 		set_focus(focus_distance / FOCUS_STEP)
 	elif event.is_action_pressed("setting_next"):
-		selected = wrapi(selected + 1, 0, Setting.size()) as Setting
+		select_offset(1)
 	elif event.is_action_pressed("setting_prev"):
-		selected = wrapi(selected - 1, 0, Setting.size()) as Setting
+		select_offset(-1)
 	elif event.is_action_pressed("value_up"):
 		step_selected(1)
 	elif event.is_action_pressed("value_down"):
 		step_selected(-1)
+
+
+## Moves the selection left (-1) or right (+1) across the dials, wrapping around.
+func select_offset(offset: int) -> void:
+	selected = wrapi(selected + offset, 0, Setting.size()) as Setting
+	settings_changed.emit()
 
 
 func step_selected(direction: int) -> void:
@@ -160,16 +171,48 @@ func visibility_of(subject: PhotoSubject) -> float:
 	return float(seen) / points.size()
 
 
-## Settings line for the HUD; the selected setting is wrapped in brackets.
-func describe() -> String:
-	var parts := PackedStringArray([
-		PhotoScoring.format_aperture(aperture),
-		PhotoScoring.format_shutter(shutter_s),
-		"ISO %d" % iso,
-		"%dmm" % focal_length_mm,
-	])
-	parts[selected] = "[ %s ]" % parts[selected]
-	return "   ".join(parts)
+## Which entry of setting_labels() is currently set.
+func setting_index(setting: Setting) -> int:
+	match setting:
+		Setting.ISO:
+			return _iso_i
+		Setting.SHUTTER:
+			return _shutter_i
+		Setting.APERTURE:
+			return _aperture_i
+	return _focal_i
+
+
+## Short labels for the dial's tick marks, the way a camera dial prints them
+## (shutter "250" means 1/250 s).
+func setting_labels(setting: Setting) -> PackedStringArray:
+	var labels := PackedStringArray()
+	match setting:
+		Setting.ISO:
+			for value in ISOS:
+				labels.append(str(int(value)))
+		Setting.SHUTTER:
+			for value in SHUTTERS:
+				labels.append(PhotoScoring.format_shutter(value).trim_prefix("1/"))
+		Setting.APERTURE:
+			for value in APERTURES:
+				labels.append(PhotoScoring.format_aperture(value).trim_prefix("f/"))
+		Setting.FOCAL_LENGTH:
+			for value in FOCAL_LENGTHS:
+				labels.append(str(int(value)))
+	return labels
+
+
+## The current value, written out in full for the dial's center readout.
+func setting_readout(setting: Setting) -> String:
+	match setting:
+		Setting.ISO:
+			return str(int(iso))
+		Setting.SHUTTER:
+			return PhotoScoring.format_shutter(shutter_s)
+		Setting.APERTURE:
+			return PhotoScoring.format_aperture(aperture)
+	return "%dmm" % focal_length_mm
 
 
 func _apply() -> void:
@@ -186,3 +229,4 @@ func _apply() -> void:
 	# so drive brightness from the same EV error the scorer uses.
 	var ev_err := PhotoScoring.ev_error(aperture, shutter_s, iso, scene_ev)
 	attrs.exposure_multiplier = clampf(pow(2.0, -ev_err), 1.0 / 32.0, 32.0)
+	settings_changed.emit()

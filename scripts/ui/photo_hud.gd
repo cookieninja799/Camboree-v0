@@ -1,7 +1,7 @@
 class_name PhotoHud
 extends Control
-## Viewfinder overlay: thirds guides, the round brief, camera settings, and the
-## shot reveal (polaroid of the photo, stars on the chimes, pillar bars, tip).
+## Viewfinder overlay: thirds guides, the round brief, the camera setting dials,
+## and the shot reveal (polaroid of the photo, stars on the chimes, pillar bars, tip).
 
 ## Pillar keys from PhotoScoring.score() and their plain-language names.
 const PILLARS := [["focus", "Focus"], ["exposure", "Exposure"], ["placement", "Framing"], ["gate", "In view"]]
@@ -18,12 +18,15 @@ var placement_targets := PackedVector2Array():
 		placement_targets = value
 		queue_redraw()
 
+var _camera: PhotoCamera
+var _dials: Array[SettingDial] = []
 var _bars := {}  # pillar key -> ProgressBar
 var _bar_names := {}  # pillar key -> Label
 var _reveal: Tween
 var _shot_id := 0
 
 @onready var _settings_label: Label = $SettingsLabel
+@onready var _dial_row: HBoxContainer = $Dials
 @onready var _brief_label: Label = $BriefLabel
 @onready var _result: Control = $Result
 @onready var _bar_grid: GridContainer = $Result/Bars
@@ -59,11 +62,39 @@ func show_brief(text: String, color := Color.WHITE) -> void:
 	_brief_label.add_theme_color_override("font_color", color)
 
 
-func show_settings(camera_line: String, focus_m: float, subject_m: float) -> void:
+## Builds one dial per camera setting and keeps them in sync with the camera.
+func bind_camera(camera: PhotoCamera) -> void:
+	_camera = camera
+	for child in _dial_row.get_children():
+		child.queue_free()
+	_dials.clear()
+	for setting in PhotoCamera.Setting.values():
+		var dial := SettingDial.new()
+		dial.custom_minimum_size = Vector2(300, 165)
+		dial.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		dial.setup(PhotoCamera.SETTING_NAMES[setting], camera.setting_labels(setting),
+			camera.setting_index(setting), camera.setting_readout(setting))
+		_dial_row.add_child(dial)
+		_dials.append(dial)
+	camera.settings_changed.connect(_sync_dials)
+	_sync_dials()
+
+
+func dial(setting: PhotoCamera.Setting) -> SettingDial:
+	return _dials[setting]
+
+
+func show_focus(focus_m: float, subject_m: float) -> void:
 	var subject_text := "%.1f m" % subject_m if subject_m > 0.0 else "--"
-	_settings_label.text = "%s\nFocus %.1f m   |   Subject %s\nQ/E pick setting · R/F change · wheel or Z/X focus · RMB/T autofocus · Esc frees mouse" % [
-		camera_line, focus_m, subject_text,
+	_settings_label.text = "Focus %.1f m  ·  Subject %s\nQ/E pick dial  ·  R/F turn it\nWheel focus  ·  RMB autofocus  ·  Esc mouse" % [
+		focus_m, subject_text,
 	]
+
+
+func _sync_dials() -> void:
+	for setting in _dials.size():
+		_dials[setting].set_value(_camera.setting_index(setting), _camera.setting_readout(setting))
+		_dials[setting].set_selected(setting == _camera.selected)
 
 
 func clear_result() -> void:

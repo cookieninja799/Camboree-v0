@@ -49,6 +49,11 @@ static func click() -> AudioStreamWAV:
 	return _cache["click"]
 
 
+## A short, bright detent click for turning a dial.
+static func dial_tick() -> AudioStreamWAV:
+	return tone(2400.0, 0.03, 0.25)
+
+
 static func _wav(data: PackedByteArray) -> AudioStreamWAV:
 	var wav := AudioStreamWAV.new()
 	wav.format = AudioStreamWAV.FORMAT_16_BITS

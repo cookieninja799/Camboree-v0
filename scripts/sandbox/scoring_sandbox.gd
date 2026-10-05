@@ -26,13 +26,14 @@ func _ready() -> void:
 	_camera.scene_ev = scene_ev
 	_camera.shot_taken.connect(_on_shot_taken)
 	_hud.placement_targets = config.placement_targets
+	_hud.bind_camera(_camera)
 	start_round()
 
 
 func _process(_delta: float) -> void:
 	var subject := _camera.pick_subject()
 	var subject_depth := _camera.view_depth(subject.key_point()) if subject else -1.0
-	_hud.show_settings(_camera.describe(), _camera.focus_distance, subject_depth)
+	_hud.show_focus(_camera.focus_distance, subject_depth)
 
 
 func start_round() -> void:

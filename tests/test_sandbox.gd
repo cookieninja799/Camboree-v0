@@ -42,6 +42,7 @@ func _run() -> void:
 	var hidden := camera.capture(subject)
 	_check("pillar blocks the subject (visibility %.2f)" % hidden.visibility, hidden.visibility < 0.34)
 
+	_test_dials(scene, camera)
 	await _test_round(scene)
 	_test_sfx()
 
@@ -72,6 +73,26 @@ func _test_round(scene: ScoringSandbox) -> void:
 	var hud: PhotoHud = scene.get_node("HUD/Overlay")
 	_check("HUD is visible again after the photo grab", hud.visible)
 	_check("brief shows the loss", "Out of shots" in scene.get_node("HUD/Overlay/BriefLabel").text)
+
+
+func _test_dials(scene: ScoringSandbox, camera: PhotoCamera) -> void:
+	var hud: PhotoHud = scene.get_node("HUD/Overlay")
+	_check("one dial per setting", scene.get_node("HUD/Overlay/Dials").get_child_count() == PhotoCamera.Setting.size())
+	_check("dials read ISO, SHUTTER, APERTURE, ZOOM", hud.dial(PhotoCamera.Setting.ISO).title == "ISO" and hud.dial(PhotoCamera.Setting.FOCAL_LENGTH).title == "ZOOM")
+	_check("aperture dial starts selected", hud.dial(PhotoCamera.Setting.APERTURE).selected)
+
+	camera.select_offset(1)
+	_check("E moves the selection right to zoom", camera.selected == PhotoCamera.Setting.FOCAL_LENGTH and hud.dial(PhotoCamera.Setting.FOCAL_LENGTH).selected and not hud.dial(PhotoCamera.Setting.APERTURE).selected)
+	camera.select_offset(1)
+	_check("selection wraps around to ISO", camera.selected == PhotoCamera.Setting.ISO)
+
+	camera.step_selected(1)
+	var iso_dial := hud.dial(PhotoCamera.Setting.ISO)
+	_check("turning ISO updates its dial (%s)" % iso_dial.readout, iso_dial.index == 1 and iso_dial.readout == "200")
+	camera.step_selected(-1)
+	camera.select_offset(-2)
+	_check("back to aperture", camera.selected == PhotoCamera.Setting.APERTURE)
+	_check("shutter ticks read like a camera dial", camera.setting_labels(PhotoCamera.Setting.SHUTTER)[4] == "250")
 
 
 func _test_sfx() -> void:

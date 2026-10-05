@@ -19,9 +19,11 @@ A cozy, silly, low-poly photography RPG for 1–4 players, set in **Ayesso City*
 | Shoot | Left click or Space | A |
 | Autofocus (center of frame) | Right click or T | Left trigger |
 | Manual focus | Mouse wheel or Z / X | D-pad left / right |
-| Pick setting (aperture, shutter, ISO, focal length) | Q / E | LB / RB |
-| Change value | R / F or ↑ / ↓ | D-pad up / down |
+| Pick dial (ISO, shutter, aperture, zoom) | Q / E | LB / RB |
+| Turn the selected dial | R / F or ↑ / ↓ | D-pad up / down |
 | Free / capture mouse | Esc | Start |
+
+**The HUD:** four camera dials rise from the bottom of the screen: ISO, shutter, aperture, and zoom. Q/E moves between them. The selected dial lifts and shows curved arrows, and R/F turns it with a click.
 
 **The round:** get a 4-star shot of the wanderer within 5 shots. After each shot, the photo drops in as a polaroid. Stars pop in one at a time with rising chimes (a sad "bwomp" means 0 stars), bars fill in for each pillar (Focus, Exposure, Framing, In view), and a tip coaches your weakest pillar. Shoot again after a round ends to start a new one. You can tune `target_stars` and `shots_per_round` on the scene's root node.
 

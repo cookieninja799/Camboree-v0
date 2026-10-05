@@ -81,6 +81,23 @@ func _unhandled_input(event: InputEvent) -> void:
 		step_selected(-1)
 
 
+## Knocks the settings out of whack for the tutorial: exposure 2-3.5 stops off
+## and focus far too close. Framing is up to where the player aims.
+func scramble(rng: RandomNumberGenerator = null) -> void:
+	if rng == null:
+		rng = RandomNumberGenerator.new()
+		rng.randomize()
+	for attempt in 200:
+		_iso_i = rng.randi_range(0, ISOS.size() - 1)
+		_shutter_i = rng.randi_range(0, SHUTTERS.size() - 1)
+		_aperture_i = rng.randi_range(0, APERTURES.size() - 1)
+		var error := absf(PhotoScoring.ev_error(aperture, shutter_s, iso, scene_ev))
+		if error >= 2.0 and error <= 3.5:
+			break
+	focus_distance = rng.randf_range(0.4, 1.0)
+	_apply()
+
+
 ## Moves the selection left (-1) or right (+1) across the dials, wrapping around.
 func select_offset(offset: int) -> void:
 	selected = wrapi(selected + offset, 0, Setting.size()) as Setting

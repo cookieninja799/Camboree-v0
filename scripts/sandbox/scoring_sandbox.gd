@@ -11,10 +11,15 @@ enum RoundState { PLAYING, WON, LOST }
 @export var config: ScoringConfig
 @export_range(1, 5) var target_stars := 4
 @export var shots_per_round := 5
+## Start with the camera settings out of whack so the player learns to fix them.
+@export var scramble_on_start := true
+## How many rounds show the live "fix your camera" coach. 0 = never, -1 = always.
+@export var coach_rounds := 1
 
 var round_state := RoundState.PLAYING
 var shots_left := 0
 var best_stars := 0
+var rounds_started := 0
 
 @onready var _camera: PhotoCamera = $Player/Head/PhotoCamera
 @onready var _hud: PhotoHud = $HUD/Overlay
@@ -28,6 +33,8 @@ func _ready() -> void:
 	_camera.shot_taken.connect(_on_shot_taken)
 	_hud.placement_targets = config.placement_targets
 	_hud.placement_ok_radius = config.placement_ok_radius
+	if scramble_on_start:
+		_camera.scramble()
 	_hud.bind_camera(_camera)
 	start_round()
 
@@ -36,6 +43,15 @@ func _process(_delta: float) -> void:
 	var subject := _camera.pick_subject()
 	var subject_depth := _camera.view_depth(subject.key_point()) if subject else -1.0
 	_hud.show_focus(_camera.focus_distance, subject_depth)
+	if coach_active():
+		# Score what the camera would capture right now, without taking the shot.
+		var shot := _camera.capture(subject)
+		var lines := PhotoCoach.advice(PhotoScoring.score(shot, config), shot, _camera.selected, subject != null)
+		_hud.show_coach(lines)
+
+
+func coach_active() -> bool:
+	return round_state == RoundState.PLAYING and (coach_rounds < 0 or rounds_started <= coach_rounds)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -47,7 +63,9 @@ func start_round() -> void:
 	round_state = RoundState.PLAYING
 	shots_left = shots_per_round
 	best_stars = 0
+	rounds_started += 1
 	_hud.clear_result()
+	_hud.hide_coach()
 	_show_brief()
 
 
@@ -63,6 +81,8 @@ func _on_shot_taken(shot: ShotData) -> void:
 	elif shots_left <= 0:
 		round_state = RoundState.LOST
 
+	if not coach_active():
+		_hud.hide_coach()
 	Sfx.play_result(self, result.stars)
 	_hud.present_shot(result)
 	# Update the brief once the stars have finished popping, so it doesn't spoil them.

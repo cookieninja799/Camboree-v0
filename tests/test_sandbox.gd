@@ -14,6 +14,7 @@ func _initialize() -> void:
 
 func _run() -> void:
 	var scene: ScoringSandbox = load("res://scenes/sandbox/scoring_sandbox.tscn").instantiate()
+	scene.scramble_on_start = false  # the checks below start from known-good settings
 	root.add_child(scene)
 	var camera: PhotoCamera = scene.get_node("Player/Head/PhotoCamera")
 	var subject: PhotoSubject = scene.get_node("Subject")
@@ -46,7 +47,9 @@ func _run() -> void:
 	_check("background music autoplays and loops", music.autoplay and music.stream is AudioStreamMP3 and music.stream.loop)
 
 	_test_dials(scene, camera)
+	await _test_coach(scene, camera)
 	await _test_round(scene)
+	_check("coach is gone after the first round", not scene.get_node("HUD/Overlay").is_coach_visible())
 	_test_sfx()
 
 	if _failures == 0:
@@ -54,6 +57,27 @@ func _run() -> void:
 	else:
 		printerr("%d sandbox test(s) failed" % _failures)
 	quit(1 if _failures > 0 else 0)
+
+
+func _test_coach(scene: ScoringSandbox, camera: PhotoCamera) -> void:
+	var hud: PhotoHud = scene.get_node("HUD/Overlay")
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 7
+	camera.scramble(rng)
+	var error := absf(PhotoScoring.ev_error(camera.aperture, camera.shutter_s, camera.iso, camera.scene_ev))
+	_check("scramble knocks exposure 2-3.5 stops off (%.1f)" % error, error >= 2.0 and error <= 3.5)
+	_check("scramble puts focus far too close", camera.focus_distance < 1.0)
+	await process_frame
+	_check("coach shows during the first round", hud.is_coach_visible())
+	_check("coach asks for fixes", "FIX" in scene.get_node("HUD/Overlay/Coach").text)
+
+	# Shooting with bad settings is allowed; it just scores badly.
+	var bad := PhotoScoring.score(camera.capture(subject_of(scene)), scene.config)
+	_check("a shot with scrambled settings scores poorly (%.2f)" % bad.score, bad.score < 0.6)
+
+
+func subject_of(scene: ScoringSandbox) -> PhotoSubject:
+	return scene.get_node("Subject")
 
 
 func _test_round(scene: ScoringSandbox) -> void:

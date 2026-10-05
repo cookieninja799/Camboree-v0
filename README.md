@@ -24,6 +24,8 @@ A cozy, silly, low-poly photography RPG for 1–4 players, set in **Ayesso City*
 | Pause / resume music | M | Back |
 | Free / capture mouse | Esc | Start |
 
+**First start:** the camera begins with its settings out of whack (exposure 2–3.5 stops off, focus far too close). During the first round a coach checklist under the brief shows what's wrong live, phrased for the dial you have selected ("3.0 stops too bright · close the APERTURE (R)"), and turns green when everything is fixed. You can still shoot at any time, but a bad setup scores badly. `scramble_on_start` and `coach_rounds` on the root node control this.
+
 **The HUD:** four camera dials rise from the bottom of the screen: ISO, shutter, aperture, and zoom. Q/E moves between them. The selected dial lifts and shows curved arrows, and R/F turns it with a click.
 
 **The round:** get a 4-star shot of the wanderer within 5 shots. After each shot, the photo drops in as a polaroid. Stars pop in one at a time with rising chimes (a sad "bwomp" means 0 stars), bars fill in for each pillar (Focus, Exposure, Framing, In view), and a tip coaches your weakest pillar. Shoot again after a round ends to start a new one. You can tune `target_stars` and `shots_per_round` on the scene's root node.

@@ -15,6 +15,7 @@ func _initialize() -> void:
 	_test_placement()
 	_test_stars()
 	_test_full_shot()
+	_test_coach()
 
 	if _failures == 0:
 		print(PASS_MARKER)
@@ -87,6 +88,30 @@ func _test_full_shot() -> void:
 
 	shot.visibility = 0.0
 	_near("hidden subject scores 0", PhotoScoring.score(shot, _cfg).score, 0.0, 1e-6)
+
+
+func _test_coach() -> void:
+	var shot := ShotData.new()
+	shot.scene_ev = PhotoScoring.exposure_value(shot.aperture_n, shot.shutter_s, shot.iso) + 2.0  # 2 stops too bright
+	shot.focus_distance_m = 0.5
+	shot.subject_distance_m = 7.0
+	shot.subject_screen_pos = Vector2(0.5, 0.5)
+	var lines := PhotoCoach.advice(PhotoScoring.score(shot, _cfg), shot, PhotoCamera.Setting.SHUTTER, true)
+	_check("coach gives one line per pillar", lines.size() == 4)
+	_check("coach flags exposure with the selected dial", not lines[0].ok and "make SHUTTER faster (R)" in lines[0].text)
+	_check("coach flags focus with distances", not lines[1].ok and "0.5 m" in lines[1].text and "7.0 m" in lines[1].text)
+	_check("coach is happy with centered framing", lines[2].ok)
+	_check("coach is not all ok yet", not PhotoCoach.all_ok(lines))
+
+	_check("too dark on ISO says turn it up", "turn ISO up (R)" in PhotoCoach.exposure_hint(1.5, PhotoCamera.Setting.ISO))
+	_check("too bright on aperture says close it", "close the APERTURE (R)" in PhotoCoach.exposure_hint(-1.5, PhotoCamera.Setting.APERTURE))
+	_check("zoom dial says pick another dial", "Q/E" in PhotoCoach.exposure_hint(-1.5, PhotoCamera.Setting.FOCAL_LENGTH))
+
+	shot.scene_ev -= 2.0
+	shot.focus_distance_m = 7.0
+	var fixed := PhotoCoach.advice(PhotoScoring.score(shot, _cfg), shot, PhotoCamera.Setting.SHUTTER, true)
+	_check("coach is all ok once fixed", PhotoCoach.all_ok(fixed))
+	_check("coach asks to find the subject", PhotoCoach.advice(PhotoScoring.score(shot, _cfg), shot, PhotoCamera.Setting.ISO, false)[0].text.begins_with("Find"))
 
 
 func _near(label: String, actual: float, expected: float, tolerance: float) -> void:

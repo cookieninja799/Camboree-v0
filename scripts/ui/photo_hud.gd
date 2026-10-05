@@ -40,6 +40,7 @@ var _shot_id := 0
 @onready var _photo: TextureRect = $Polaroid/VBox/Photo
 @onready var _stars: StarRow = $Polaroid/VBox/Stars
 @onready var _flash: ColorRect = $Flash
+@onready var _coach: RichTextLabel = $Coach
 
 
 func _ready() -> void:
@@ -107,6 +108,32 @@ func _sync_dials() -> void:
 	for setting in _dials.size():
 		_dials[setting].set_value(_camera.setting_index(setting), _camera.setting_readout(setting))
 		_dials[setting].set_selected(setting == _camera.selected)
+
+
+## The tutorial checklist: one line per pillar, green when fixed.
+func show_coach(lines: Array[Dictionary]) -> void:
+	var text := ""
+	if PhotoCoach.all_ok(lines):
+		text = "[color=#%s]All set! Take the shot.[/color]\n" % GOOD.to_html(false)
+	else:
+		text = "Fix your camera before you shoot:\n"
+	for line in lines:
+		if line.ok:
+			text += "[color=#%s]OK[/color]   %s\n" % [GOOD.to_html(false), line.text]
+		else:
+			text += "[color=#%s]FIX[/color]  [color=#%s]%s[/color]\n" % [BAD.to_html(false), OKAY.to_html(false), line.text]
+	text = text.strip_edges()
+	if _coach.text != text:
+		_coach.text = text
+	_coach.visible = true
+
+
+func hide_coach() -> void:
+	_coach.visible = false
+
+
+func is_coach_visible() -> bool:
+	return _coach.visible
 
 
 func clear_result() -> void:

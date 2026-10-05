@@ -22,13 +22,16 @@ jobs:
       - name: Import project
         run: godot --headless --import --path .
 
-      # Godot can exit 0 even when a script fails to parse, so also require the pass marker.
+      # Godot can exit 0 even when a script fails to parse or errors at runtime,
+      # so require the pass marker and reject any script error in the log.
       - name: Scoring tests
         run: |
           godot --headless --path . -s res://tests/test_scoring.gd 2>&1 | tee scoring.log
           grep -q "SCORING TESTS PASSED" scoring.log
+          ! grep -q "SCRIPT ERROR" scoring.log
 
       - name: Sandbox tests
         run: |
           godot --headless --path . -s res://tests/test_sandbox.gd 2>&1 | tee sandbox.log
           grep -q "SANDBOX TESTS PASSED" sandbox.log
+          ! grep -q "SCRIPT ERROR" sandbox.log

@@ -257,7 +257,8 @@ Not written yet.
 
 The full design is a multi-year game. The first playable slice is:
 
-1. **Burst mode prototype:** the camera plus scoring v0 in microgames. ← *we are here (scoring sandbox)*
+1. **Burst mode prototype:** the camera plus scoring v0 in microgames. ← *we are here: a sandbox round (4★ within 5 shots) with a polaroid, star chimes, and pillar bars*
+   - Next: **briefs** that change what a good shot means each round ("blurry background", "freeze the runner", "subject on the left third"). This turns one sandbox into a game.
 2. One hub block of Ayesso City, Grandmother, and the full loop (settings → shoot → score → sell).
 3. One style, probably Street or Nature.
 4. The film darkroom minigame as the "wow" feature.

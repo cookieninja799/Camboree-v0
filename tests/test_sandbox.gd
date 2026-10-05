@@ -13,7 +13,7 @@ func _initialize() -> void:
 
 
 func _run() -> void:
-	var scene: Node3D = load("res://scenes/sandbox/scoring_sandbox.tscn").instantiate()
+	var scene: ScoringSandbox = load("res://scenes/sandbox/scoring_sandbox.tscn").instantiate()
 	root.add_child(scene)
 	var camera: PhotoCamera = scene.get_node("Player/Head/PhotoCamera")
 	var subject: PhotoSubject = scene.get_node("Subject")
@@ -42,11 +42,52 @@ func _run() -> void:
 	var hidden := camera.capture(subject)
 	_check("pillar blocks the subject (visibility %.2f)" % hidden.visibility, hidden.visibility < 0.34)
 
+	await _test_round(scene)
+	_test_sfx()
+
 	if _failures == 0:
 		print(PASS_MARKER)
 	else:
 		printerr("%d sandbox test(s) failed" % _failures)
 	quit(1 if _failures > 0 else 0)
+
+
+func _test_round(scene: ScoringSandbox) -> void:
+	scene.start_round()
+	_check("round starts with a full roll", scene.round_state == ScoringSandbox.RoundState.PLAYING and scene.shots_left == scene.shots_per_round)
+
+	scene._on_shot_taken(_perfect_shot())
+	_check("a 5-star shot wins the round", scene.round_state == ScoringSandbox.RoundState.WON)
+	scene._on_shot_taken(_perfect_shot())
+	_check("shooting after the round restarts it", scene.round_state == ScoringSandbox.RoundState.PLAYING and scene.shots_left == scene.shots_per_round)
+
+	var miss := _perfect_shot()
+	miss.visibility = 0.0
+	for i in scene.shots_per_round:
+		scene._on_shot_taken(miss)
+	_check("running out of shots loses", scene.round_state == ScoringSandbox.RoundState.LOST and scene.best_stars == 0)
+
+	# Let the photo grab, polaroid drop, and staggered reveal play out; script errors fail CI.
+	await create_timer(Sfx.reveal_time(5) + 0.3).timeout
+	var hud: PhotoHud = scene.get_node("HUD/Overlay")
+	_check("HUD is visible again after the photo grab", hud.visible)
+	_check("brief shows the loss", "Out of shots" in scene.get_node("HUD/Overlay/BriefLabel").text)
+
+
+func _test_sfx() -> void:
+	var chime := Sfx.tone(440.0, 0.25)
+	_check("tone has the right length", chime.data.size() == int(Sfx.RATE * 0.25) * 2)
+	_check("tones are cached", Sfx.tone(440.0, 0.25) == chime)
+	_check("stars chime in order", Sfx.star_time(1) > Sfx.star_time(0))
+
+
+func _perfect_shot() -> ShotData:
+	var shot := ShotData.new()
+	shot.scene_ev = PhotoScoring.exposure_value(shot.aperture_n, shot.shutter_s, shot.iso)
+	shot.focus_distance_m = 4.0
+	shot.subject_distance_m = 4.0
+	shot.subject_screen_pos = Vector2(1.0 / 3.0, 1.0 / 3.0)
+	return shot
 
 
 func _settle() -> void:

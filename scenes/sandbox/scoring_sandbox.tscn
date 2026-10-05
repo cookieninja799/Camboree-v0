@@ -1,4 +1,4 @@
-[gd_scene load_steps=19 format=3]
+[gd_scene load_steps=21 format=3]
 
 [ext_resource type="Script" path="res://scripts/sandbox/scoring_sandbox.gd" id="1_root"]
 [ext_resource type="Resource" path="res://resources/scoring/default_scoring_config.tres" id="2_cfg"]
@@ -6,6 +6,7 @@
 [ext_resource type="Script" path="res://scripts/photo/photo_camera.gd" id="4_camera"]
 [ext_resource type="Script" path="res://scripts/photo/photo_subject.gd" id="5_subject"]
 [ext_resource type="Script" path="res://scripts/ui/photo_hud.gd" id="6_hud"]
+[ext_resource type="Script" path="res://scripts/ui/star_row.gd" id="7_stars"]
 
 [sub_resource type="ProceduralSkyMaterial" id="SkyMaterial_1"]
 sky_top_color = Color(0.32, 0.55, 0.9, 1)
@@ -58,6 +59,20 @@ size = Vector3(0.8, 3, 0.8)
 
 [sub_resource type="BoxShape3D" id="PillarShape_1"]
 size = Vector3(0.8, 3, 0.8)
+
+[sub_resource type="StyleBoxFlat" id="PolaroidStyle_1"]
+content_margin_left = 12.0
+content_margin_top = 12.0
+content_margin_right = 12.0
+content_margin_bottom = 8.0
+bg_color = Color(0.97, 0.96, 0.92, 1)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+shadow_color = Color(0, 0, 0, 0.35)
+shadow_size = 8
+shadow_offset = Vector2(3, 4)
 
 [node name="ScoringSandbox" type="Node3D"]
 script = ExtResource("1_root")
@@ -155,6 +170,78 @@ grow_vertical = 2
 mouse_filter = 2
 script = ExtResource("6_hud")
 
+[node name="BriefLabel" type="Label" parent="HUD/Overlay"]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_top = 14.0
+offset_bottom = 58.0
+grow_horizontal = 2
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 10
+theme_override_font_sizes/font_size = 30
+horizontal_alignment = 1
+
+[node name="Result" type="VBoxContainer" parent="HUD/Overlay"]
+layout_mode = 0
+offset_left = 20.0
+offset_top = 72.0
+offset_right = 460.0
+offset_bottom = 260.0
+mouse_filter = 2
+theme_override_constants/separation = 10
+
+[node name="Bars" type="GridContainer" parent="HUD/Overlay/Result"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/h_separation = 12
+columns = 2
+
+[node name="TipLabel" type="Label" parent="HUD/Overlay/Result"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.9, 0.45, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 8
+theme_override_font_sizes/font_size = 22
+autowrap_mode = 3
+
+[node name="Polaroid" type="PanelContainer" parent="HUD/Overlay"]
+layout_mode = 0
+offset_right = 344.0
+offset_bottom = 256.0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("PolaroidStyle_1")
+
+[node name="VBox" type="VBoxContainer" parent="HUD/Overlay/Polaroid"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Photo" type="TextureRect" parent="HUD/Overlay/Polaroid/VBox"]
+custom_minimum_size = Vector2(320, 180)
+layout_mode = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 6
+
+[node name="Stars" type="Control" parent="HUD/Overlay/Polaroid/VBox"]
+custom_minimum_size = Vector2(320, 48)
+layout_mode = 2
+mouse_filter = 2
+script = ExtResource("7_stars")
+
+[node name="SettingsLabel" type="Label" parent="HUD/Overlay"]
+layout_mode = 1
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 16.0
+offset_top = -84.0
+offset_right = 1000.0
+offset_bottom = -12.0
+grow_vertical = 0
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 6
+
 [node name="Flash" type="ColorRect" parent="HUD/Overlay"]
 modulate = Color(1, 1, 1, 0)
 layout_mode = 1
@@ -164,25 +251,3 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-
-[node name="SettingsLabel" type="Label" parent="HUD/Overlay"]
-layout_mode = 0
-offset_left = 16.0
-offset_top = 12.0
-offset_right = 900.0
-offset_bottom = 100.0
-theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
-theme_override_constants/outline_size = 6
-
-[node name="ResultLabel" type="Label" parent="HUD/Overlay"]
-layout_mode = 1
-anchors_preset = 2
-anchor_top = 1.0
-anchor_bottom = 1.0
-offset_left = 16.0
-offset_top = -112.0
-offset_right = 900.0
-offset_bottom = -12.0
-grow_vertical = 0
-theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
-theme_override_constants/outline_size = 6

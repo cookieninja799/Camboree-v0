@@ -28,7 +28,7 @@ A cozy, silly, low-poly photography RPG for 1–4 players, set in **Ayesso City*
 
 **The round:** get a 4-star shot of the wanderer within 5 shots. After each shot, the photo drops in as a polaroid. Stars pop in one at a time with rising chimes (a sad "bwomp" means 0 stars), bars fill in for each pillar (Focus, Exposure, Framing, In view), and a tip coaches your weakest pillar. Shoot again after a round ends to start a new one. You can tune `target_stars` and `shots_per_round` on the scene's root node.
 
-Background music: *As You Fall (Maybe)* (`assets/audio/music/`), looping. Sound effects are still placeholders synthesized in code (`scripts/audio/sfx.gd`). The scene's lighting is set by `scene_ev` on the root node, and every scoring constant is in `resources/scoring/default_scoring_config.tres`.
+Background music: *Journey to Tomorrow* (`assets/audio/music/`), looping. Sound effects are still placeholders synthesized in code (`scripts/audio/sfx.gd`). The scene's lighting is set by `scene_ev` on the root node, and every scoring constant is in `resources/scoring/default_scoring_config.tres`.
 
 ## Project layout
 

@@ -7,7 +7,7 @@
 [ext_resource type="Script" path="res://scripts/photo/photo_subject.gd" id="5_subject"]
 [ext_resource type="Script" path="res://scripts/ui/photo_hud.gd" id="6_hud"]
 [ext_resource type="Script" path="res://scripts/ui/star_row.gd" id="7_stars"]
-[ext_resource type="AudioStream" uid="uid://da1anhwvtsa5o" path="res://assets/audio/music/as_you_fall_maybe.mp3" id="8_music"]
+[ext_resource type="AudioStream" uid="uid://bsmrlw3fl75yc" path="res://assets/audio/music/journey_to_tomorrow.mp3" id="8_music"]
 
 [sub_resource type="ProceduralSkyMaterial" id="SkyMaterial_1"]
 sky_top_color = Color(0.32, 0.55, 0.9, 1)

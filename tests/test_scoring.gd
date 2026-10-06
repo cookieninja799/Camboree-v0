@@ -107,8 +107,8 @@ func _test_coach() -> void:
 
 	_check("too dark on ISO says turn it up", "scroll ISO up" in PhotoCoach.exposure_hint(1.5, PhotoCamera.Setting.ISO))
 	_check("too bright on aperture says close it", "close the APERTURE (scroll up)" in PhotoCoach.exposure_hint(-1.5, PhotoCamera.Setting.APERTURE))
-	_check("zoom dial says pick another dial", "Q/E" in PhotoCoach.exposure_hint(-1.5, PhotoCamera.Setting.FOCAL_LENGTH))
-	_check("focus dial says pick another dial", "Q/E" in PhotoCoach.exposure_hint(-1.5, PhotoCamera.Setting.FOCUS))
+	_check("zoom dial says pick another dial", "APERTURE (3)" in PhotoCoach.exposure_hint(-1.5, PhotoCamera.Setting.FOCAL_LENGTH))
+	_check("focus dial says pick another dial", "ISO (1)" in PhotoCoach.exposure_hint(-1.5, PhotoCamera.Setting.FOCUS))
 
 	shot.scene_ev -= 2.0
 	shot.focus_distance_m = 7.0

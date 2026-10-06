@@ -92,6 +92,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			needs_raise.emit()
 	elif raised and event.is_action_pressed("autofocus"):
 		autofocus()
+	elif _direct_dial(event) >= 0:
+		select_setting(_direct_dial(event) as Setting)
 	elif event.is_action_pressed("setting_next"):
 		select_offset(1)
 	elif event.is_action_pressed("setting_prev"):
@@ -121,8 +123,21 @@ func scramble(rng: RandomNumberGenerator = null) -> void:
 
 ## Moves the selection left (-1) or right (+1) across the dials, wrapping around.
 func select_offset(offset: int) -> void:
-	selected = wrapi(selected + offset, 0, Setting.size()) as Setting
+	select_setting(wrapi(selected + offset, 0, Setting.size()) as Setting)
+
+
+## Jumps straight to a dial (keys 1-5).
+func select_setting(setting: Setting) -> void:
+	selected = setting
 	settings_changed.emit()
+
+
+## Which dial a "dial_N" quick-access action points at, or -1.
+func _direct_dial(event: InputEvent) -> int:
+	for i in Setting.size():
+		if event.is_action_pressed("dial_%d" % (i + 1)):
+			return i
+	return -1
 
 
 func step_selected(direction: int) -> void:

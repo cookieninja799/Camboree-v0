@@ -19,7 +19,8 @@ A cozy, silly, low-poly photography RPG for 1–4 players. Think Stardew Valley 
 | Raise camera (aim down sights) | **Hold** right click | **Hold** left trigger |
 | Shoot (camera raised) | Left click or Space | Right trigger |
 | Autofocus (camera raised): tap = once, hold = track | Shift | X |
-| Pick dial (ISO, shutter, aperture, zoom, focus) | Q / E | LB / RB or D-pad left / right |
+| Jump to a dial: 1 ISO, 2 shutter, 3 aperture, 4 zoom, 5 focus | **1–5** | — |
+| Step to the previous / next dial | Q / E | LB / RB or D-pad left / right |
 | Turn the selected dial | **Mouse wheel** (or ↑ / ↓) | D-pad up / down |
 | Pause / resume music | M | Back |
 | Free / capture mouse | Esc | Start |
@@ -30,7 +31,7 @@ A cozy, silly, low-poly photography RPG for 1–4 players. Think Stardew Valley 
 
 **First start:** the camera begins with its settings out of whack (exposure 2–3.5 stops off, focus far too close). During the first round a coach checklist under the brief shows what's wrong live, phrased for the dial you have selected ("3.0 stops too bright · close the APERTURE (scroll up)"), and turns green when everything is fixed. You can still shoot at any time, but a bad setup scores badly. `scramble_on_start` and `coach_rounds` on the root node control this.
 
-**The HUD:** five camera dials rise from the bottom of the screen: ISO, shutter, aperture, zoom, and focus. Q/E moves between them. The selected dial lifts and shows curved arrows, and the mouse wheel turns it with a click. Focus is a lens ring marked 0.3 m to infinity (spaced like a real lens scale): each wheel notch turns it a third of a mark, and autofocus turns it for you as the lens racks. The dials work in both views: compact while exploring (so you can preset exposure before the action), full size in the viewfinder.
+**The HUD:** five camera dials rise from the bottom of the screen: ISO, shutter, aperture, zoom, and focus. Keys 1–5 jump straight to a dial (each shows its number), and Q/E step between neighbors. The selected dial lifts and shows curved arrows, and the mouse wheel turns it with a click. Focus is a lens ring marked 0.3 m to infinity (spaced like a real lens scale): each wheel notch turns it a third of a mark, and autofocus turns it for you as the lens racks. The dials work in both views: compact while exploring (so you can preset exposure before the action), full size in the viewfinder.
 
 **The round:** get a 4-star shot of the wanderer within 5 shots. After each shot, the photo drops in as a polaroid. Stars pop in one at a time with rising chimes (a sad "bwomp" means 0 stars), bars fill in for each pillar (Focus, Exposure, Framing, In view), and a tip coaches your weakest pillar. Shoot again after a round ends to start a new one. You can tune `target_stars` and `shots_per_round` on the scene's root node.
 

@@ -54,7 +54,7 @@ static func exposure_hint(ev_error: float, selected: PhotoCamera.Setting) -> Str
 			return problem + (" · scroll SHUTTER faster (up)" if too_bright else " · scroll SHUTTER slower (down)")
 		PhotoCamera.Setting.APERTURE:
 			return problem + (" · close the APERTURE (scroll up)" if too_bright else " · open the APERTURE (scroll down)")
-	return problem + " · pick ISO, SHUTTER or APERTURE with Q/E"
+	return problem + " · pick ISO (1), SHUTTER (2) or APERTURE (3)"
 
 
 static func focus_hint(shot: ShotData) -> String:

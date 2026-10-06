@@ -227,6 +227,14 @@ func _test_dials(scene: ScoringSandbox, camera: PhotoCamera) -> void:
 	camera.step_selected(-1)
 	camera.select_offset(-3)
 	_check("back to aperture", camera.selected == PhotoCamera.Setting.APERTURE)
+	# Number keys jump straight to a dial.
+	_press("dial_5")
+	_check("5 jumps to the focus dial", camera.selected == PhotoCamera.Setting.FOCUS and hud.dial(PhotoCamera.Setting.FOCUS).selected)
+	_press("dial_1")
+	_check("1 jumps to the ISO dial", camera.selected == PhotoCamera.Setting.ISO)
+	_check("dials show their number keys", hud.dial(PhotoCamera.Setting.ISO).hotkey == "1" and hud.dial(PhotoCamera.Setting.FOCUS).hotkey == "5")
+	_press("dial_3")
+	_check("3 jumps back to aperture", camera.selected == PhotoCamera.Setting.APERTURE)
 	_check("shutter ticks read like a camera dial", camera.setting_labels(PhotoCamera.Setting.SHUTTER)[4] == "250")
 
 

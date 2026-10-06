@@ -14,6 +14,8 @@ const LIFT_PX := 14.0
 @export var accent := Color(1.0, 0.78, 0.2)
 
 var title := ""
+## Quick-access key shown as a small badge next to the title (e.g. "1").
+var hotkey := ""
 var labels := PackedStringArray()
 var readout := ""
 var index := 0
@@ -105,7 +107,13 @@ func _draw() -> void:
 	draw_colored_polygon(PackedVector2Array([top + Vector2(-8, -12), top + Vector2(8, -12), top + Vector2(0, -1)]), Color(accent, alpha))
 
 	_draw_centered(font, readout, center + Vector2(0.0, -radius * 0.45), 26, Color(Color.WHITE, alpha), true)
-	_draw_centered(font, title, center + Vector2(0.0, -radius * 0.2), 13, rim)
+	var title_pos := center + Vector2(0.0, -radius * 0.2)
+	_draw_centered(font, title, title_pos, 13, rim)
+	if hotkey != "":
+		var half_width := font.get_string_size(title, HORIZONTAL_ALIGNMENT_LEFT, -1, 13).x * 0.5
+		var badge := Rect2(title_pos + Vector2(-half_width - 22.0, -8.0), Vector2(16.0, 16.0))
+		draw_rect(badge, Color(accent if selected else rim_color, alpha * 0.9), false, 1.5)
+		_draw_centered(font, hotkey, badge.get_center(), 11, Color(accent if selected else rim_color, alpha))
 
 	if selected:
 		_draw_turn_arrows(center)

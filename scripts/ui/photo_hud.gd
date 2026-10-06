@@ -154,6 +154,7 @@ func bind_camera(camera: PhotoCamera) -> void:
 		dial.radius = 115.0
 		dial.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		dial.silent = setting == PhotoCamera.Setting.FOCUS
+		dial.hotkey = str(setting + 1)
 		dial.setup(PhotoCamera.SETTING_NAMES[setting], camera.setting_labels(setting),
 			camera.setting_position(setting), camera.setting_readout(setting))
 		_dial_row.add_child(dial)
@@ -168,8 +169,8 @@ func dial(setting: PhotoCamera.Setting) -> SettingDial:
 
 func show_focus(focus_m: float, subject_m: float) -> void:
 	var subject_text := "%.1f m" % subject_m if subject_m > 0.0 else "--"
-	var controls := "LMB shoot  ·  Shift autofocus (hold = track)\nQ/E pick dial  ·  Wheel turns it  ·  release RMB to lower" if _viewfinder \
-		else "Hold RMB raise camera  ·  WASD move\nQ/E pick dial  ·  Wheel turns it  ·  M music  ·  Esc mouse"
+	var controls := "LMB shoot  ·  Shift autofocus (hold = track)\n1-5 or Q/E pick dial  ·  Wheel turns it  ·  release RMB to lower" if _viewfinder \
+		else "Hold RMB raise camera  ·  WASD move\n1-5 or Q/E pick dial  ·  Wheel turns it  ·  M music  ·  Esc mouse"
 	_settings_label.text = "Focus %.1f m  ·  Subject %s\n%s" % [focus_m, subject_text, controls]
 
 

@@ -73,6 +73,15 @@ func _test_ads(scene: ScoringSandbox, camera: PhotoCamera) -> void:
 	await process_frame
 	_check("coach asks to raise the camera first", "Raise your camera" in scene.get_node("HUD/Overlay/Coach").text)
 
+	# Fortnite-style: turning the crosshair turns the body.
+	var yaw_before := player.rotation.y
+	player._look(Vector2(0.6, -0.2))  # mouse right, slightly up
+	await create_timer(0.4).timeout
+	_check("body turns to follow the crosshair (%.2f -> %.2f)" % [yaw_before, player.rotation.y], absf(angle_difference(player.rotation.y, yaw_before + -0.6)) < 0.05)
+	_check("head follows the aim pitch", absf(camera.get_parent().rotation.x - player._rig_pitch) < 1e-4)
+	player._look(Vector2(-0.6, 0.2))
+	await create_timer(0.4).timeout
+
 	var shots := [0]
 	var count_shot := func(_shot: ShotData) -> void: shots[0] += 1
 	camera.shot_taken.connect(count_shot)
@@ -82,8 +91,9 @@ func _test_ads(scene: ScoringSandbox, camera: PhotoCamera) -> void:
 	_check("shooting with the camera lowered takes no photo", shots[0] == 0 and nudged[0])
 
 	player.raise_held = true
-	await process_frame
-	_check("raising blends rather than cuts", player.ads_amount() > 0.0 and player.ads_amount() < 1.0 and view.current)
+	await process_frame  # fires just before _process runs...
+	await process_frame  # ...so wait one more to see the first blend step
+	_check("raising blends rather than cuts (ads %.2f, view current %s)" % [player.ads_amount(), view.current], player.ads_amount() > 0.0 and player.ads_amount() < 1.0 and view.current)
 	await create_timer(player.ads_time + 0.1).timeout
 	_check("held raise reaches the viewfinder", player.mode == Player.Mode.VIEWFINDER and camera.current and camera.raised)
 	_check("HUD switched to the viewfinder", hud.is_viewfinder())

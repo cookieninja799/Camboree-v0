@@ -1,7 +1,9 @@
 class_name Player
 extends CharacterBody3D
 ## The photographer. Explore in third person with an over-the-shoulder orbit
-## camera; hold "raise_camera" to bring the camera to your eye, ADS-style. The
+## camera; the body always faces where the crosshair points (Fortnite-style), so
+## movement strafes and the head tilts with your aim. Hold "raise_camera" to bring
+## the camera to your eye, ADS-style. The
 ## view blends from the shoulder into the PhotoCamera while the FOV narrows to
 ## the lens, and aim carries over so raising never jolts the view.
 
@@ -18,7 +20,10 @@ enum Mode { EXPLORE, VIEWFINDER }
 @export var mouse_sensitivity := 0.0025
 @export var stick_look_speed := 2.5
 @export var stick_deadzone := 0.2
-@export var turn_speed := 10.0
+## How quickly the body turns to face the crosshair while exploring.
+@export var turn_speed := 18.0
+## How much of the aim pitch shows as the head tilting up/down (visual only).
+@export var head_tilt_amount := 0.6
 @export_group("Orbit")
 @export var orbit_min_length := 2.0
 @export var orbit_max_length := 6.0
@@ -41,6 +46,7 @@ var _rig_pitch := -0.2
 @onready var _orbit_anchor: Node3D = $CameraRig/SpringArm3D/OrbitAnchor
 @onready var _view_camera: Camera3D = $ViewCamera
 @onready var _camera_prop: Node3D = $Body/CameraProp
+@onready var _head_mesh: Node3D = $Body/HeadMesh
 
 var _prop_chest: Transform3D
 var _prop_eye: Transform3D
@@ -106,8 +112,6 @@ func _physics_process(delta: float) -> void:
 	var move_speed := speed * (aim_speed_mult if aiming else 1.0)
 	velocity.x = direction.x * move_speed
 	velocity.z = direction.z * move_speed
-	if not aiming and direction.length() > 0.1:
-		rotation.y = lerp_angle(rotation.y, atan2(-direction.x, -direction.z), minf(1.0, turn_speed * delta))
 	move_and_slide()
 
 
@@ -121,6 +125,11 @@ func _process(delta: float) -> void:
 		# so lowering the camera returns to the same direction.
 		_rig_yaw = rotation.y
 		_rig_pitch = clampf(_head.rotation.x, orbit_pitch_min, orbit_pitch_max)
+	else:
+		# Exploring: the body turns to face the crosshair and the head follows its pitch.
+		rotation.y = lerp_angle(rotation.y, _rig_yaw, minf(1.0, turn_speed * delta))
+		_head.rotation.x = _rig_pitch
+	_head_mesh.rotation.x = _head.rotation.x * head_tilt_amount
 	_update_rig()
 	_update_view(_ads)
 

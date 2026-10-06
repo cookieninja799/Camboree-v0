@@ -110,7 +110,7 @@ Open question: image quality and pixel count as a 0.2×–1.0× multiplier (tier
 
 ### Views
 
-- Exploring uses a third-person, over-the-shoulder camera with full 360° orbit, so you always see your photographer.
+- Exploring uses a third-person, over-the-shoulder camera with full 360° orbit, so you always see your photographer. Like Fortnite, the body always faces the crosshair: turning the camera turns the character, movement strafes, and the head tilts with the aim.
 - Shooting is first person through the viewfinder and works like **aim-down-sights** in a shooter: hold to raise, the view blends from the shoulder into the camera (about 0.15 s) while the FOV narrows to the lens, aim carries over from the third-person aim dot, you slow-walk while raised, and sensitivity scales with zoom.
 - The viewfinder shows the camera's real exposure and depth of field (like an electronic viewfinder). The shoulder view always looks normal.
 - Setting dials work in both views: compact while exploring, so you can preset exposure before the action.

@@ -9,9 +9,15 @@ const GOOD := 0.8
 
 
 ## One entry per pillar: { "pillar": String, "ok": bool, "text": String }.
-## `subject_found` is false when no subject is in view at all.
-static func advice(result: Dictionary, shot: ShotData, selected: PhotoCamera.Setting, subject_found: bool) -> Array[Dictionary]:
+## `subject_found` is false when no subject is in view at all. `raised` is false
+## while the player is exploring with the camera lowered: then the coach asks them
+## to raise it, but exposure can already be fixed ahead of time.
+static func advice(result: Dictionary, shot: ShotData, selected: PhotoCamera.Setting, subject_found: bool, raised := true) -> Array[Dictionary]:
 	var lines: Array[Dictionary] = []
+	if not raised:
+		lines.append(_line("raise", false, "Raise your camera: hold RMB (LT)"))
+		lines.append(_line("exposure", result.exposure >= GOOD, "Exposure" if result.exposure >= GOOD else exposure_hint(result.ev_error, selected)))
+		return lines
 	if not subject_found:
 		lines.append(_line("gate", false, "Find the wanderer (the orange capsule)"))
 		lines.append(_line("exposure", result.exposure >= GOOD, "Exposure" if result.exposure >= GOOD else exposure_hint(result.ev_error, selected)))
@@ -52,7 +58,7 @@ static func exposure_hint(ev_error: float, selected: PhotoCamera.Setting) -> Str
 
 
 static func focus_hint(shot: ShotData) -> String:
-	return "Focus: at %.1f m, but the wanderer is %.1f m away · aim at them and right-click (autofocus)" % [
+	return "Focus: at %.1f m, but the wanderer is %.1f m away · aim at them and press Shift to autofocus" % [
 		shot.focus_distance_m, shot.subject_distance_m,
 	]
 

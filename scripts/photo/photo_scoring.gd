@@ -81,6 +81,8 @@ static func exposure_score(error_stops: float, cfg: ScoringConfig) -> float:
 ## Framing: full marks inside the ok radius of the nearest target, easing to 0
 ## at the bad radius.
 static func placement_score(screen_pos: Vector2, cfg: ScoringConfig) -> float:
+	if not Rect2(0.0, 0.0, 1.0, 1.0).has_point(screen_pos):
+		return 0.0  # the subject isn't in the frame at all
 	var nearest := INF
 	for target in cfg.placement_targets:
 		nearest = minf(nearest, screen_pos.distance_to(target))

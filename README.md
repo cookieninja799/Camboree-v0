@@ -16,17 +16,23 @@ A cozy, silly, low-poly photography RPG for 1–4 players, set in **Ayesso City*
 | Action | Keyboard / mouse | Controller |
 |---|---|---|
 | Move / look | WASD / mouse | Left stick / right stick |
-| Shoot | Left click or Space | A |
-| Autofocus (center of frame) | Right click or T | Left trigger |
-| Manual focus | Mouse wheel or Z / X | D-pad left / right |
+| Raise camera (aim down sights) | **Hold** right click | **Hold** left trigger |
+| Shoot (camera raised) | Left click or Space | Right trigger |
+| Autofocus (camera raised): tap = once, hold = track | Shift | X |
+| Manual focus (camera raised) | Mouse wheel or Z / X | D-pad left / right |
+| Orbit zoom (camera lowered) | Mouse wheel | — |
 | Pick dial (ISO, shutter, aperture, zoom) | Q / E | LB / RB |
 | Turn the selected dial | R / F or ↑ / ↓ | D-pad up / down |
 | Pause / resume music | M | Back |
 | Free / capture mouse | Esc | Start |
 
+**Two views:** you explore in third person with an over-the-shoulder camera, so you can see your photographer. Hold right click to raise the camera to your eye, like aiming down sights in a shooter: the view slides from your shoulder into the camera in 0.15 s, the field of view narrows to the lens, and it opens exactly where your aim dot was. You can slow-walk while aiming, look sensitivity drops on longer lenses, and releasing snaps you back out. You can only shoot with the camera raised. The viewfinder shows the camera's real exposure and depth of field, while the shoulder view always looks normal.
+
+**Autofocus is a motor, not a snap:** Shift racks the lens toward whatever is under the focus bracket over about a third of a second, with a whir, then a double beep and a green bracket on lock. Shoot before it locks and you can miss focus. Hold Shift to keep tracking a moving subject. With nothing under the bracket (sky), the lens hunts and gives up with a red bracket.
+
 **First start:** the camera begins with its settings out of whack (exposure 2–3.5 stops off, focus far too close). During the first round a coach checklist under the brief shows what's wrong live, phrased for the dial you have selected ("3.0 stops too bright · close the APERTURE (R)"), and turns green when everything is fixed. You can still shoot at any time, but a bad setup scores badly. `scramble_on_start` and `coach_rounds` on the root node control this.
 
-**The HUD:** four camera dials rise from the bottom of the screen: ISO, shutter, aperture, and zoom. Q/E moves between them. The selected dial lifts and shows curved arrows, and R/F turns it with a click.
+**The HUD:** four camera dials rise from the bottom of the screen: ISO, shutter, aperture, and zoom. Q/E moves between them. The selected dial lifts and shows curved arrows, and R/F turns it with a click. The dials work in both views: compact while exploring (so you can preset exposure before the action), full size in the viewfinder.
 
 **The round:** get a 4-star shot of the wanderer within 5 shots. After each shot, the photo drops in as a polaroid. Stars pop in one at a time with rising chimes (a sad "bwomp" means 0 stars), bars fill in for each pillar (Focus, Exposure, Framing, In view), and a tip coaches your weakest pillar. Shoot again after a round ends to start a new one. You can tune `target_stars` and `shots_per_round` on the scene's root node.
 
@@ -38,7 +44,8 @@ Background music: *Journey to Tomorrow* (`assets/audio/music/`), looping. Sound 
 docs/design/       Design docs (GDD, scoring spec)
 scenes/sandbox/    Prototype scenes
 scripts/photo/     Camera, subject, and scoring code (ShotData, ScoringConfig, PhotoScoring)
-scripts/sandbox/   Sandbox-only helpers (player controller, input setup)
+scripts/player/    The photographer: third-person explore + ADS viewfinder
+scripts/sandbox/   Sandbox-only helpers (round logic, input setup)
 scripts/ui/        HUD
 resources/         Tunable .tres resources
 assets/            Models, textures, audio, fonts

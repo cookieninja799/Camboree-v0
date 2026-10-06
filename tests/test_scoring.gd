@@ -16,6 +16,7 @@ func _initialize() -> void:
 	_test_stars()
 	_test_full_shot()
 	_test_coach()
+	_test_focus_motor()
 
 	if _failures == 0:
 		print(PASS_MARKER)
@@ -51,10 +52,11 @@ func _test_placement() -> void:
 	_near("placement on a thirds point", PhotoScoring.placement_score(Vector2(2.0 / 3.0, 1.0 / 3.0), _cfg), 1.0, 1e-6)
 	_near("placement dead center", PhotoScoring.placement_score(Vector2(0.5, 0.5), _cfg), 1.0, 1e-6)
 	_check("placement in the corner is poor", PhotoScoring.placement_score(Vector2.ZERO, _cfg) < 0.01)
-	_near("placement near a thirds point still scores full", PhotoScoring.placement_score(Vector2(1.0 / 3.0 + 0.05, 1.0 / 3.0), _cfg), 1.0, 1e-6)
+	_near("placement near a thirds point still scores full", PhotoScoring.placement_score(Vector2(1.0 / 3.0 + 0.04, 1.0 / 3.0), _cfg), 1.0, 1e-6)
 	# Worst spot between the center and a thirds point is about 0.118 from both.
 	var between := PhotoScoring.placement_score(Vector2(5.0 / 12.0, 5.0 / 12.0), _cfg)
-	_check("placement between targets is decent (%.2f)" % between, between > 0.7 and between < 0.85)
+	_check("placement between targets is middling (%.2f)" % between, between > 0.55 and between < 0.75)
+	_check("placement off screen is zero", PhotoScoring.placement_score(Vector2(-1.0, -1.0), _cfg) == 0.0 and PhotoScoring.placement_score(Vector2(1.2, 0.5), _cfg) == 0.0)
 	_check("placement near the edge is poor", PhotoScoring.placement_score(Vector2(0.05, 0.5), _cfg) < 0.05)
 
 
@@ -111,7 +113,26 @@ func _test_coach() -> void:
 	shot.focus_distance_m = 7.0
 	var fixed := PhotoCoach.advice(PhotoScoring.score(shot, _cfg), shot, PhotoCamera.Setting.SHUTTER, true)
 	_check("coach is all ok once fixed", PhotoCoach.all_ok(fixed))
+	var lowered := PhotoCoach.advice(PhotoScoring.score(shot, _cfg), shot, PhotoCamera.Setting.ISO, true, false)
+	_check("lowered camera: coach asks to raise it first", lowered.size() == 2 and not lowered[0].ok and "Raise your camera" in lowered[0].text and lowered[1].pillar == "exposure")
 	_check("coach asks to find the subject", PhotoCoach.advice(PhotoScoring.score(shot, _cfg), shot, PhotoCamera.Setting.ISO, false)[0].text.begins_with("Find"))
+
+
+func _test_focus_motor() -> void:
+	var focus := 0.5
+	var steps := 0
+	while absf(1.0 / focus - 1.0 / 7.0) > 1e-4 and steps < 200:
+		var next := PhotoCamera.step_focus(focus, 7.0, 6.0, 1.0 / 60.0)
+		_check_quiet(next >= focus and next <= 7.0 + 1e-4)
+		focus = next
+		steps += 1
+	_check("focus motor reaches 7 m from 0.5 m without overshoot in %d frames" % steps, steps > 10 and steps < 40)
+	_near("focus motor moves in diopters", 1.0 / PhotoCamera.step_focus(1.0, 0.5, 6.0, 0.1), 1.6, 1e-4)
+
+
+func _check_quiet(ok: bool) -> void:
+	if not ok:
+		_check("focus motor step stays between start and target", false)
 
 
 func _near(label: String, actual: float, expected: float, tolerance: float) -> void:

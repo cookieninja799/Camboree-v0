@@ -21,6 +21,7 @@ var shots_left := 0
 var best_stars := 0
 var rounds_started := 0
 
+@onready var _player: Player = $Player
 @onready var _camera: PhotoCamera = $Player/Head/PhotoCamera
 @onready var _hud: PhotoHud = $HUD/Overlay
 @onready var _music: AudioStreamPlayer = $Music
@@ -36,6 +37,10 @@ func _ready() -> void:
 	if scramble_on_start:
 		_camera.scramble()
 	_hud.bind_camera(_camera)
+	_hud.set_viewfinder(_player.is_viewfinder())
+	_player.mode_changed.connect(func(mode: Player.Mode) -> void: _hud.set_viewfinder(mode == Player.Mode.VIEWFINDER))
+	_camera.focus_state_changed.connect(_hud.set_focus_state)
+	_camera.needs_raise.connect(_hud.nudge.bind("Hold RMB (LT) to raise your camera"))
 	start_round()
 
 
@@ -46,7 +51,7 @@ func _process(_delta: float) -> void:
 	if coach_active():
 		# Score what the camera would capture right now, without taking the shot.
 		var shot := _camera.capture(subject)
-		var lines := PhotoCoach.advice(PhotoScoring.score(shot, config), shot, _camera.selected, subject != null)
+		var lines := PhotoCoach.advice(PhotoScoring.score(shot, config), shot, _camera.selected, subject != null, _player.is_viewfinder())
 		_hud.show_coach(lines)
 
 

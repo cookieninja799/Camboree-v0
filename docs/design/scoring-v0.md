@@ -12,7 +12,7 @@ Code: `scripts/photo/photo_scoring.gd`. Constants: `resources/scoring/default_sc
 | **Gate** | Fraction of the subject's sample points (head, torso, feet) that are in the frustum and not blocked by a raycast. |
 | **Focus** | `1 − smoothstep(0.5·c, 3·c, blur)` on the subject's key point (the head), using thin-lens blur with `c = 0.03 mm`. |
 | **Exposure** | `EV_set = log2(N²/t) − log2(ISO/100)`, `error = EV_set − EV_scene`, score `1 − smoothstep(0.5, 2.5, |error|)`. Positive error means too dark. |
-| **Placement** ("Framing") | Distance `d` from the subject's key point to the nearest rule-of-thirds intersection or the center, in normalized screen units. Score `1 − smoothstep(0.06, 0.25, d)`: full marks inside the 0.06 zone (drawn in the viewfinder), 0 near the edges. |
+| **Placement** ("Framing") | Distance `d` from the subject's key point to the nearest rule-of-thirds intersection or the center, in normalized screen units. Score `1 − smoothstep(0.05, 0.22, d)`: full marks inside the 0.05 zone (drawn in the viewfinder), 0 near the edges, and **0 if the key point is off screen**. |
 
 **Blur:** `blur = f² · |d − s| / (N · d · (s − f))`, where `f` = focal length, `s` = focus distance, `d` = subject depth along the view axis, `N` = f-number. Distances are in meters and the result is converted to mm.
 
@@ -34,7 +34,7 @@ Reference values (these are covered by `tests/test_scoring.gd`):
 - Scoring runs on shutter press only.
 - All constants live in `ScoringConfig` so they can be tuned in the inspector.
 - **Visuals match grading:** `PhotoCamera` drives `CameraAttributesPhysical` (focal length → FOV, focus distance + aperture → depth of field) from the same values the scorer reads. Physical light units are off, so brightness is driven by `exposure_multiplier = 2^(−EV error)`, which uses the same number as the exposure pillar.
-- Framing originally used a Gaussian (σ = 0.1) with no flat top. It was much harder to max than focus or exposure: a ≥ 0.9 score needed the head within 0.046 of a point. It now uses the same "ok zone + smoothstep falloff" shape as the other pillars.
+- Framing originally used a Gaussian (σ = 0.1) with no flat top. It was much harder to max than focus or exposure: a ≥ 0.9 score needed the head within 0.046 of a point. It now uses the same "ok zone + smoothstep falloff" shape as the other pillars. A first pass (0.06 / 0.25) overshot, and a bug gave full framing to subjects that weren't in frame at all (their screen position defaulted to the center). Now off-screen scores 0, and the zone is 0.05 / 0.22, so the worst spot between targets scores about 0.65.
 - Gear is **not** a score multiplier. Gear unlocks briefs (see the GDD).
 
 ## Not yet scored (next candidates)

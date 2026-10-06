@@ -1,8 +1,8 @@
-[gd_scene load_steps=22 format=3]
+[gd_scene load_steps=30 format=3]
 
 [ext_resource type="Script" path="res://scripts/sandbox/scoring_sandbox.gd" id="1_root"]
 [ext_resource type="Resource" path="res://resources/scoring/default_scoring_config.tres" id="2_cfg"]
-[ext_resource type="Script" path="res://scripts/sandbox/sandbox_player.gd" id="3_player"]
+[ext_resource type="Script" path="res://scripts/player/player.gd" id="3_player"]
 [ext_resource type="Script" path="res://scripts/photo/photo_camera.gd" id="4_camera"]
 [ext_resource type="Script" path="res://scripts/photo/photo_subject.gd" id="5_subject"]
 [ext_resource type="Script" path="res://scripts/ui/photo_hud.gd" id="6_hud"]
@@ -75,6 +75,40 @@ shadow_color = Color(0, 0, 0, 0.35)
 shadow_size = 8
 shadow_offset = Vector2(3, 4)
 
+[sub_resource type="StandardMaterial3D" id="ShirtMaterial_1"]
+albedo_color = Color(0.3, 0.55, 0.95, 1)
+
+[sub_resource type="CapsuleMesh" id="PlayerBodyMesh_1"]
+material = SubResource("ShirtMaterial_1")
+radius = 0.3
+height = 1.15
+
+[sub_resource type="StandardMaterial3D" id="SkinMaterial_1"]
+albedo_color = Color(0.98, 0.8, 0.65, 1)
+
+[sub_resource type="SphereMesh" id="PlayerHeadMesh_1"]
+material = SubResource("SkinMaterial_1")
+radius = 0.26
+height = 0.52
+
+[sub_resource type="StandardMaterial3D" id="DarkMaterial_1"]
+albedo_color = Color(0.12, 0.12, 0.14, 1)
+
+[sub_resource type="SphereMesh" id="EyeMesh_1"]
+material = SubResource("DarkMaterial_1")
+radius = 0.035
+height = 0.07
+
+[sub_resource type="BoxMesh" id="CameraPropMesh_1"]
+material = SubResource("DarkMaterial_1")
+size = Vector3(0.22, 0.14, 0.1)
+
+[sub_resource type="CylinderMesh" id="LensMesh_1"]
+material = SubResource("DarkMaterial_1")
+top_radius = 0.05
+bottom_radius = 0.05
+height = 0.08
+
 [node name="ScoringSandbox" type="Node3D"]
 script = ExtResource("1_root")
 config = ExtResource("2_cfg")
@@ -103,13 +137,60 @@ script = ExtResource("3_player")
 [node name="Shape" type="CollisionShape3D" parent="Player"]
 shape = SubResource("PlayerShape_1")
 
+[node name="Body" type="Node3D" parent="Player"]
+
+[node name="Torso" type="MeshInstance3D" parent="Player/Body"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.275, 0)
+layers = 2
+mesh = SubResource("PlayerBodyMesh_1")
+
+[node name="HeadMesh" type="MeshInstance3D" parent="Player/Body"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.55, 0)
+layers = 2
+mesh = SubResource("PlayerHeadMesh_1")
+
+[node name="EyeL" type="MeshInstance3D" parent="Player/Body"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.09, 0.6, -0.235)
+layers = 2
+mesh = SubResource("EyeMesh_1")
+
+[node name="EyeR" type="MeshInstance3D" parent="Player/Body"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.09, 0.6, -0.235)
+layers = 2
+mesh = SubResource("EyeMesh_1")
+
+[node name="CameraProp" type="MeshInstance3D" parent="Player/Body"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, -0.34)
+layers = 2
+mesh = SubResource("CameraPropMesh_1")
+
+[node name="Lens" type="MeshInstance3D" parent="Player/Body/CameraProp"]
+transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, 0, 0, -0.08)
+layers = 2
+mesh = SubResource("LensMesh_1")
+
 [node name="Head" type="Node3D" parent="Player"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.65, 0)
 
 [node name="PhotoCamera" type="Camera3D" parent="Player/Head"]
+cull_mask = 1048573
 attributes = SubResource("CameraAttributes_1")
-current = true
 script = ExtResource("4_camera")
+
+[node name="CameraRig" type="Node3D" parent="Player"]
+top_level = true
+
+[node name="SpringArm3D" type="SpringArm3D" parent="Player/CameraRig"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.8, 0.3, 0)
+spring_length = 3.2
+margin = 0.2
+
+[node name="OrbitAnchor" type="Node3D" parent="Player/CameraRig/SpringArm3D"]
+
+[node name="ViewCamera" type="Camera3D" parent="Player"]
+top_level = true
+current = true
+fov = 70.0
 
 [node name="Subject" type="CharacterBody3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.8, 0)
@@ -277,6 +358,25 @@ grow_vertical = 0
 mouse_filter = 2
 theme_override_constants/separation = 0
 alignment = 1
+
+[node name="NudgeLabel" type="Label" parent="HUD/Overlay"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -320.0
+offset_top = 40.0
+offset_right = 320.0
+offset_bottom = 80.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(1, 0.9, 0.45, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 8
+theme_override_font_sizes/font_size = 22
+horizontal_alignment = 1
 
 [node name="Flash" type="ColorRect" parent="HUD/Overlay"]
 modulate = Color(1, 1, 1, 0)

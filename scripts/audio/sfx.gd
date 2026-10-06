@@ -49,6 +49,21 @@ static func click() -> AudioStreamWAV:
 	return _cache["click"]
 
 
+## One pulse of the autofocus motor's whir; retriggered while the lens racks.
+static func af_motor() -> AudioStreamWAV:
+	return tone(140.0, 0.1, 0.18)
+
+
+static func af_fail() -> AudioStreamWAV:
+	return tone(320.0, 0.18, 0.3)
+
+
+## The classic double beep when focus locks.
+static func play_af_lock(host: Node) -> void:
+	play(host, tone(2000.0, 0.05, 0.25))
+	play(host, tone(2000.0, 0.05, 0.25), 0.08)
+
+
 ## A short, bright detent click for turning a dial.
 static func dial_tick() -> AudioStreamWAV:
 	return tone(2400.0, 0.03, 0.25)

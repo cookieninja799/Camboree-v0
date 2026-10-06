@@ -1,6 +1,6 @@
 extends SceneTree
-## Headless smoke test for the scoring sandbox: loads the real scene, autofocuses
-## on the subject, and checks that shots and occlusion score sensibly.
+## Headless smoke test for the scoring sandbox: loads the real scene, raises the
+## camera, autofocuses on the subject, and checks that shots and occlusion score sensibly.
 ##   godot --headless --path . -s res://tests/test_sandbox.gd
 
 const PASS_MARKER := "SANDBOX TESTS PASSED"
@@ -25,10 +25,10 @@ func _run() -> void:
 	var sun: Node3D = scene.get_node("Sun")
 	_check("sun shines downward", -sun.global_basis.z.y < -0.5)
 
+	await _test_ads(scene, camera)
+
 	_check("camera picks the subject", camera.pick_subject() == subject)
-	camera.autofocus()
-	var depth := camera.view_depth(subject.key_point())
-	_check("autofocus lands near the subject (%.2f m vs %.2f m)" % [camera.focus_distance, depth], absf(camera.focus_distance - depth) < 0.5)
+	await _test_autofocus(camera, subject)
 
 	var shot := camera.capture(subject)
 	_check("subject fully visible", is_equal_approx(shot.visibility, 1.0))
@@ -57,6 +57,84 @@ func _run() -> void:
 	else:
 		printerr("%d sandbox test(s) failed" % _failures)
 	quit(1 if _failures > 0 else 0)
+
+
+func _test_ads(scene: ScoringSandbox, camera: PhotoCamera) -> void:
+	var player: Player = scene.get_node("Player")
+	var hud: PhotoHud = scene.get_node("HUD/Overlay")
+	var view: Camera3D = scene.get_node("Player/ViewCamera")
+	_check("starts exploring in third person", player.mode == Player.Mode.EXPLORE and view.current and not camera.raised)
+	_check("HUD starts in explore mode", not hud.is_viewfinder())
+	_check("view camera starts behind the player", view.global_position.z > player.global_position.z + 1.0)
+	await process_frame
+	_check("coach asks to raise the camera first", "Raise your camera" in scene.get_node("HUD/Overlay/Coach").text)
+
+	var shots := [0]
+	var count_shot := func(_shot: ShotData) -> void: shots[0] += 1
+	camera.shot_taken.connect(count_shot)
+	var nudged := [false]
+	camera.needs_raise.connect(func() -> void: nudged[0] = true)
+	_press("shoot")
+	_check("shooting with the camera lowered takes no photo", shots[0] == 0 and nudged[0])
+
+	player.raise_held = true
+	await process_frame
+	_check("raising blends rather than cuts", player.ads_amount() > 0.0 and player.ads_amount() < 1.0 and view.current)
+	await create_timer(player.ads_time + 0.1).timeout
+	_check("held raise reaches the viewfinder", player.mode == Player.Mode.VIEWFINDER and camera.current and camera.raised)
+	_check("HUD switched to the viewfinder", hud.is_viewfinder())
+	_check("viewfinder aims where the shoulder camera aimed (subject in view)", camera.pick_subject() == subject_of(scene))
+	_press("shoot")
+	_check("shooting with the camera raised takes a photo", shots[0] == 1)
+	camera.shot_taken.disconnect(count_shot)
+	scene.rounds_started = 0  # undo the test shot's effect on the round
+	scene.start_round()
+
+	player.raise_held = false
+	await create_timer(player.ads_time + 0.1).timeout
+	_check("releasing lowers the camera", player.mode == Player.Mode.EXPLORE and view.current and not camera.raised)
+	player.raise_held = true
+	await create_timer(player.ads_time + 0.1).timeout
+
+
+func _test_autofocus(camera: PhotoCamera, subject: PhotoSubject) -> void:
+	var player: Player = camera.get_parent().get_parent()
+	player.look_at_point(subject.key_point() + Vector3(0.0, -0.3, 0.0))
+	await process_frame
+	camera.set_focus(0.5)
+	camera.autofocus()
+	_check("autofocus starts the lens motor", camera.focus_state == PhotoCamera.FocusState.DRIVING)
+	await process_frame
+	await process_frame
+	var depth := camera.view_depth(subject.key_point())
+	_check("autofocus takes time (%.2f m after 2 frames)" % camera.focus_distance, absf(camera.focus_distance - depth) > 1.0)
+	await create_timer(0.6).timeout
+	_check("autofocus locks near the subject (%.2f m vs %.2f m)" % [camera.focus_distance, depth],
+		camera.focus_state == PhotoCamera.FocusState.LOCKED and absf(camera.focus_distance - depth) < 0.5)
+
+	camera.autofocus()
+	camera.set_focus(2.0)
+	_check("manual focus cancels autofocus", camera.focus_state == PhotoCamera.FocusState.IDLE and is_equal_approx(camera.focus_distance, 2.0))
+
+	# Aim at the empty sky: the lens hunts and gives up.
+	var head: Node3D = camera.get_parent()
+	var pitch := head.rotation.x
+	head.rotation.x = deg_to_rad(60.0)
+	camera.autofocus()
+	await create_timer(1.5).timeout
+	_check("autofocus on the sky fails", camera.focus_state == PhotoCamera.FocusState.FAILED)
+	head.rotation.x = pitch
+	player.look_at_point(subject.key_point())
+	camera.autofocus()
+	await create_timer(0.6).timeout
+
+
+func _press(action: String) -> void:
+	var event := InputEventAction.new()
+	event.action = action
+	event.pressed = true
+	Input.parse_input_event(event)
+	Input.flush_buffered_events()
 
 
 func _test_coach(scene: ScoringSandbox, camera: PhotoCamera) -> void:

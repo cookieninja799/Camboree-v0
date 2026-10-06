@@ -7,9 +7,14 @@ extends Camera3D
 signal shot_taken(shot: ShotData)
 ## A setting value or the selected setting changed.
 signal settings_changed
+## Shoot was pressed with the camera lowered.
+signal needs_raise
+signal focus_state_changed(state: FocusState)
 
 ## Ordered left to right as the HUD dials appear.
 enum Setting { ISO, SHUTTER, APERTURE, FOCAL_LENGTH }
+
+enum FocusState { IDLE, DRIVING, LOCKED, FAILED }
 
 const SETTING_NAMES := ["ISO", "SHUTTER", "APERTURE", "ZOOM"]
 
@@ -20,6 +25,9 @@ const FOCAL_LENGTHS := [18.0, 24.0, 35.0, 50.0, 85.0, 135.0, 200.0]
 const MIN_FOCUS_M := 0.3
 const MAX_FOCUS_M := 200.0
 const FOCUS_STEP := 1.06
+## Lens travel is linear in diopters (1/meters), not meters.
+const FOCUS_LOCK_DIOPTERS := 0.003
+const AF_MOTOR_SOUND_GAP := 0.09
 
 ## Correct exposure for the scene at ISO 100. Set by whoever owns the scene.
 @export var scene_ev := 13.0:
@@ -27,8 +35,15 @@ const FOCUS_STEP := 1.06
 		scene_ev = value
 		_apply()
 
+## How fast the autofocus motor racks the lens, in diopters per second.
+## 6 takes a 0.5 m -> 7 m rack about 0.3 s.
+@export var af_speed_diopters := 6.0
+
 var selected := Setting.APERTURE
 var focus_distance := 3.0
+## True while the camera is at the player's eye. Shooting and focusing need it.
+var raised := true
+var focus_state := FocusState.IDLE
 
 var aperture: float:
 	get: return APERTURES[_aperture_i]
@@ -44,6 +59,10 @@ var _shutter_i := 4  # 1/250
 var _iso_i := 0  # ISO 100
 var _focal_i := 3  # 50mm
 var _exclude: Array[RID] = []
+var _af_target := -1.0  # meters; < 0 when the motor is idle
+var _af_hunt: Array[float] = []  # remaining hunt legs when nothing is under the focus point
+var _hunting := false
+var _af_sound_timer := 0.0
 
 
 func _ready() -> void:
@@ -64,12 +83,15 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and Input.mouse_mode != Input.MOUSE_MODE_CAPTURED:
 		return
 	if event.is_action_pressed("shoot"):
-		shot_taken.emit(capture(pick_subject()))
-	elif event.is_action_pressed("autofocus"):
+		if raised:
+			shot_taken.emit(capture(pick_subject()))
+		else:
+			needs_raise.emit()
+	elif raised and event.is_action_pressed("autofocus"):
 		autofocus()
-	elif event.is_action_pressed("focus_far"):
+	elif raised and event.is_action_pressed("focus_far"):
 		set_focus(focus_distance * FOCUS_STEP)
-	elif event.is_action_pressed("focus_near"):
+	elif raised and event.is_action_pressed("focus_near"):
 		set_focus(focus_distance / FOCUS_STEP)
 	elif event.is_action_pressed("setting_next"):
 		select_offset(1)
@@ -117,18 +139,87 @@ func step_selected(direction: int) -> void:
 	_apply()
 
 
+## Manual focus. Cancels any autofocus drive.
 func set_focus(distance_m: float) -> void:
+	_af_target = -1.0
+	_af_hunt.clear()
+	_hunting = false
+	_set_focus_state(FocusState.IDLE)
+	_set_focus_distance(distance_m)
+
+
+## Starts the autofocus motor toward whatever sits under the center of the
+## frame. It takes time to get there; shooting mid-drive can miss focus. With
+## nothing to focus on, the lens hunts to infinity and back, then gives up.
+func autofocus() -> void:
+	var depth := _center_depth()
+	_hunting = depth <= 0.0
+	if _hunting:
+		_af_hunt = [MAX_FOCUS_M, focus_distance]
+		_af_target = _af_hunt.pop_front()
+	else:
+		_af_hunt.clear()
+		_af_target = depth
+	_set_focus_state(FocusState.DRIVING)
+
+
+## Moves `current_m` toward `target_m` at `speed` diopters per second, slowing
+## near the end like a real focus motor. Never overshoots.
+static func step_focus(current_m: float, target_m: float, speed: float, delta: float) -> float:
+	var current := 1.0 / current_m
+	var target := 1.0 / target_m
+	var gap := absf(target - current)
+	var step := minf(gap, speed * delta * clampf(gap * 2.0 + 0.3, 0.3, 1.0))
+	return 1.0 / move_toward(current, target, step)
+
+
+func _process(delta: float) -> void:
+	# Holding autofocus keeps re-targeting: continuous AF that tracks a moving subject.
+	if raised and Input.is_action_pressed("autofocus") and not _hunting:
+		var depth := _center_depth()
+		if depth > 0.0 and absf(1.0 / depth - 1.0 / focus_distance) > FOCUS_LOCK_DIOPTERS:
+			_af_target = depth
+			_set_focus_state(FocusState.DRIVING)
+	if _af_target < 0.0:
+		return
+
+	_set_focus_distance(step_focus(focus_distance, _af_target, af_speed_diopters, delta))
+	_af_sound_timer -= delta
+	if _af_sound_timer <= 0.0:
+		_af_sound_timer = AF_MOTOR_SOUND_GAP
+		Sfx.play(self, Sfx.af_motor())
+	if absf(1.0 / focus_distance - 1.0 / _af_target) > FOCUS_LOCK_DIOPTERS:
+		return
+	if not _af_hunt.is_empty():
+		_af_target = _af_hunt.pop_front()
+		return
+	_af_target = -1.0
+	if _hunting:
+		_hunting = false
+		_set_focus_state(FocusState.FAILED)
+		Sfx.play(self, Sfx.af_fail())
+	else:
+		_set_focus_state(FocusState.LOCKED)
+		Sfx.play_af_lock(self)
+
+
+func _set_focus_state(state: FocusState) -> void:
+	if state != focus_state:
+		focus_state = state
+		focus_state_changed.emit(state)
+
+
+func _set_focus_distance(distance_m: float) -> void:
 	focus_distance = clampf(distance_m, MIN_FOCUS_M, MAX_FOCUS_M)
 	_apply()
 
 
-## Single-shot autofocus on whatever sits under the center of the frame.
-func autofocus() -> void:
+## View depth of whatever is under the center of the frame, or -1 for nothing.
+func _center_depth() -> float:
 	var query := PhysicsRayQueryParameters3D.create(global_position, global_position - global_basis.z * MAX_FOCUS_M)
 	query.exclude = _exclude
 	var hit := get_world_3d().direct_space_state.intersect_ray(query)
-	if not hit.is_empty():
-		set_focus(view_depth(hit.position))
+	return view_depth(hit.position) if not hit.is_empty() else -1.0
 
 
 ## Distance of a world point along the camera's view axis (what focus cares about).
@@ -163,6 +254,7 @@ func capture(subject: PhotoSubject) -> ShotData:
 	shot.scene_ev = scene_ev
 	if subject == null:
 		shot.visibility = 0.0
+		shot.subject_screen_pos = Vector2(-1.0, -1.0)  # off screen: no framing credit
 		return shot
 	var key := subject.key_point()
 	shot.subject_distance_m = maxf(view_depth(key), 0.01)

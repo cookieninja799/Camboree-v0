@@ -66,6 +66,10 @@ func _test_ads(scene: ScoringSandbox, camera: PhotoCamera) -> void:
 	_check("starts exploring in third person", player.mode == Player.Mode.EXPLORE and view.current and not camera.raised)
 	_check("HUD starts in explore mode", not hud.is_viewfinder())
 	_check("view camera starts behind the player", view.global_position.z > player.global_position.z + 1.0)
+	# Your eyes never see the camera's exposure: only the PhotoCamera carries it.
+	_check("eye view has no camera exposure", view.attributes == null)
+	_check("world environment carries no camera exposure", scene.get_node("WorldEnvironment").camera_attributes == null)
+	_check("photo camera owns the exposure", camera.attributes is CameraAttributesPhysical)
 	await process_frame
 	_check("coach asks to raise the camera first", "Raise your camera" in scene.get_node("HUD/Overlay/Coach").text)
 

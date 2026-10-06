@@ -170,7 +170,7 @@ func dial(setting: PhotoCamera.Setting) -> SettingDial:
 func show_focus(focus_m: float, subject_m: float) -> void:
 	var subject_text := "%.1f m" % subject_m if subject_m > 0.0 else "--"
 	var controls := "LMB shoot  ·  Shift autofocus (hold = track)\n1-5 or Q/E pick dial  ·  Wheel turns it  ·  release RMB to lower" if _viewfinder \
-		else "Hold RMB raise camera  ·  WASD move\n1-5 or Q/E pick dial  ·  Wheel turns it  ·  M music  ·  Esc mouse"
+		else "Hold RMB raise camera  ·  WASD move  ·  Space jump\n1-5 or Q/E pick dial  ·  Wheel turns it  ·  M music  ·  Esc mouse"
 	_settings_label.text = "Focus %.1f m  ·  Subject %s\n%s" % [focus_m, subject_text, controls]
 
 

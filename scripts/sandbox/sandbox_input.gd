@@ -11,7 +11,8 @@ static func ensure_actions() -> void:
 	_add("move_left", [_key(KEY_A), _axis(JOY_AXIS_LEFT_X, -1.0)])
 	_add("move_right", [_key(KEY_D), _axis(JOY_AXIS_LEFT_X, 1.0)])
 	_add("raise_camera", [_mouse(MOUSE_BUTTON_RIGHT), _axis(JOY_AXIS_TRIGGER_LEFT, 1.0)])
-	_add("shoot", [_mouse(MOUSE_BUTTON_LEFT), _key(KEY_SPACE), _axis(JOY_AXIS_TRIGGER_RIGHT, 1.0)])
+	_add("shoot", [_mouse(MOUSE_BUTTON_LEFT), _axis(JOY_AXIS_TRIGGER_RIGHT, 1.0)])
+	_add("jump", [_key(KEY_SPACE), _button(JOY_BUTTON_A)])
 	_add("autofocus", [_key(KEY_SHIFT), _button(JOY_BUTTON_X)])
 	# Number keys jump straight to a dial: 1 ISO, 2 shutter, 3 aperture, 4 zoom, 5 focus.
 	for i in 5:

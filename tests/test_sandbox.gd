@@ -82,6 +82,15 @@ func _test_ads(scene: ScoringSandbox, camera: PhotoCamera) -> void:
 	player._look(Vector2(-0.6, 0.2))
 	await create_timer(0.4).timeout
 
+	# Space jumps like a traditional FPS (and no longer shoots).
+	var ground_y := player.global_position.y
+	_press("jump")
+	await create_timer(0.2).timeout
+	_check("space makes the character jump (rose %.2f m)" % (player.global_position.y - ground_y), player.global_position.y > ground_y + 0.3)
+	await create_timer(1.0).timeout
+	_check("the character lands again", absf(player.global_position.y - ground_y) < 0.05 and player.is_on_floor())
+	_check("space is not a shoot key", not InputMap.action_get_events("shoot").any(func(e: InputEvent) -> bool: return e is InputEventKey and e.physical_keycode == KEY_SPACE))
+
 	var shots := [0]
 	var count_shot := func(_shot: ShotData) -> void: shots[0] += 1
 	camera.shot_taken.connect(count_shot)

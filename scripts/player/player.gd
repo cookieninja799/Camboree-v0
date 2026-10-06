@@ -12,6 +12,8 @@ signal mode_changed(mode: Mode)
 enum Mode { EXPLORE, VIEWFINDER }
 
 @export var speed := 4.0
+## Upward speed when jumping (m/s). ~4.5 gives a hop of about 1 m.
+@export var jump_velocity := 4.5
 ## Movement multiplier while the camera is up (slow walk, like ADS).
 @export var aim_speed_mult := 0.35
 ## Seconds for the camera to come up to the eye (and back down).
@@ -31,6 +33,8 @@ enum Mode { EXPLORE, VIEWFINDER }
 var mode := Mode.EXPLORE
 ## Held state of the raise button. Tests can set it directly.
 var raise_held := false
+
+var _jump_queued := false
 
 var _ads := 0.0  # 0 = shoulder view, 1 = through the camera
 var _rig_yaw := 0.0
@@ -73,6 +77,8 @@ func ads_amount() -> float:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed("jump"):
+		_jump_queued = true
 	if event.is_action_pressed("raise_camera"):
 		raise_held = true
 	elif event.is_action_released("raise_camera"):
@@ -95,6 +101,10 @@ func _physics_process(delta: float) -> void:
 
 	if not is_on_floor():
 		velocity += get_gravity() * delta
+	# Jump like a traditional FPS: only from the ground, and it works with the camera up too.
+	if _jump_queued and is_on_floor():
+		velocity.y = jump_velocity
+	_jump_queued = false
 	var input := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
 	var aiming := _ads > 0.0
 	# Explore: move relative to where the orbit camera looks. Aiming: relative to the body.

@@ -17,7 +17,8 @@ A cozy, silly, low-poly photography RPG for 1–4 players. Think Stardew Valley 
 |---|---|---|
 | Move / look | WASD / mouse | Left stick / right stick |
 | Raise camera (aim down sights) | **Hold** right click | **Hold** left trigger |
-| Shoot (camera raised) | Left click or Space | Right trigger |
+| Jump | Space | A |
+| Shoot (camera raised) | Left click | Right trigger |
 | Autofocus (camera raised): tap = once, hold = track | Shift | X |
 | Jump to a dial: 1 ISO, 2 shutter, 3 aperture, 4 zoom, 5 focus | **1–5** | — |
 | Step to the previous / next dial | Q / E | LB / RB or D-pad left / right |

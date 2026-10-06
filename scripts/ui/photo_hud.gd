@@ -150,10 +150,12 @@ func bind_camera(camera: PhotoCamera) -> void:
 	_dials.clear()
 	for setting in PhotoCamera.Setting.values():
 		var dial := SettingDial.new()
-		dial.custom_minimum_size = Vector2(300, 165)
+		dial.custom_minimum_size = Vector2(250, 165)
+		dial.radius = 115.0
 		dial.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		dial.silent = setting == PhotoCamera.Setting.FOCUS
 		dial.setup(PhotoCamera.SETTING_NAMES[setting], camera.setting_labels(setting),
-			camera.setting_index(setting), camera.setting_readout(setting))
+			camera.setting_position(setting), camera.setting_readout(setting))
 		_dial_row.add_child(dial)
 		_dials.append(dial)
 	camera.settings_changed.connect(_sync_dials)
@@ -166,14 +168,14 @@ func dial(setting: PhotoCamera.Setting) -> SettingDial:
 
 func show_focus(focus_m: float, subject_m: float) -> void:
 	var subject_text := "%.1f m" % subject_m if subject_m > 0.0 else "--"
-	var controls := "LMB shoot  ·  Shift autofocus (hold = track)\nWheel focus  ·  Q/E R/F dials  ·  release RMB to lower" if _viewfinder \
-		else "Hold RMB raise camera  ·  WASD move\nQ/E R/F dials  ·  Wheel zoom  ·  M music  ·  Esc mouse"
+	var controls := "LMB shoot  ·  Shift autofocus (hold = track)\nQ/E pick dial  ·  Wheel turns it  ·  release RMB to lower" if _viewfinder \
+		else "Hold RMB raise camera  ·  WASD move\nQ/E pick dial  ·  Wheel turns it  ·  M music  ·  Esc mouse"
 	_settings_label.text = "Focus %.1f m  ·  Subject %s\n%s" % [focus_m, subject_text, controls]
 
 
 func _sync_dials() -> void:
 	for setting in _dials.size():
-		_dials[setting].set_value(_camera.setting_index(setting), _camera.setting_readout(setting))
+		_dials[setting].set_value(_camera.setting_position(setting), _camera.setting_readout(setting))
 		_dials[setting].set_selected(setting == _camera.selected)
 
 

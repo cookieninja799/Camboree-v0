@@ -197,11 +197,27 @@ func _test_round(scene: ScoringSandbox) -> void:
 func _test_dials(scene: ScoringSandbox, camera: PhotoCamera) -> void:
 	var hud: PhotoHud = scene.get_node("HUD/Overlay")
 	_check("one dial per setting", scene.get_node("HUD/Overlay/Dials").get_child_count() == PhotoCamera.Setting.size())
-	_check("dials read ISO, SHUTTER, APERTURE, ZOOM", hud.dial(PhotoCamera.Setting.ISO).title == "ISO" and hud.dial(PhotoCamera.Setting.FOCAL_LENGTH).title == "ZOOM")
+	_check("dials read ISO, SHUTTER, APERTURE, ZOOM, FOCUS", hud.dial(PhotoCamera.Setting.ISO).title == "ISO" and hud.dial(PhotoCamera.Setting.FOCAL_LENGTH).title == "ZOOM" and hud.dial(PhotoCamera.Setting.FOCUS).title == "FOCUS")
 	_check("aperture dial starts selected", hud.dial(PhotoCamera.Setting.APERTURE).selected)
 
 	camera.select_offset(1)
 	_check("E moves the selection right to zoom", camera.selected == PhotoCamera.Setting.FOCAL_LENGTH and hud.dial(PhotoCamera.Setting.FOCAL_LENGTH).selected and not hud.dial(PhotoCamera.Setting.APERTURE).selected)
+	camera.select_offset(1)
+	_check("E again reaches the focus ring", camera.selected == PhotoCamera.Setting.FOCUS)
+
+	# The focus ring: the wheel turns it in fractions of a mark, cancelling autofocus.
+	var focus_dial := hud.dial(PhotoCamera.Setting.FOCUS)
+	camera.set_focus(2.0)
+	_check("focus dial points at the 2 m mark (%s)" % focus_dial.readout, focus_dial.index == PhotoCamera.FOCUS_MARKS.find(2.0) and focus_dial.readout == "2.0 m")
+	camera.autofocus()
+	for i in 3:
+		camera.step_selected(1)
+	_check("three notches up turn focus one mark farther (%.2f m)" % camera.focus_distance, is_equal_approx(camera.focus_distance, 3.0))
+	_check("turning the focus ring cancels autofocus", camera.focus_state == PhotoCamera.FocusState.IDLE)
+	camera.step_selected(-3)
+	_check("focus ring scale is spaced in diopters", is_equal_approx(PhotoCamera.focus_from_ring(PhotoCamera.focus_ring_position(4.0)), 4.0))
+	_check("focus ring ends at infinity", camera.setting_labels(PhotoCamera.Setting.FOCUS)[-1] == "inf")
+
 	camera.select_offset(1)
 	_check("selection wraps around to ISO", camera.selected == PhotoCamera.Setting.ISO)
 
@@ -209,7 +225,7 @@ func _test_dials(scene: ScoringSandbox, camera: PhotoCamera) -> void:
 	var iso_dial := hud.dial(PhotoCamera.Setting.ISO)
 	_check("turning ISO updates its dial (%s)" % iso_dial.readout, iso_dial.index == 1 and iso_dial.readout == "200")
 	camera.step_selected(-1)
-	camera.select_offset(-2)
+	camera.select_offset(-3)
 	_check("back to aperture", camera.selected == PhotoCamera.Setting.APERTURE)
 	_check("shutter ticks read like a camera dial", camera.setting_labels(PhotoCamera.Setting.SHUTTER)[4] == "250")
 

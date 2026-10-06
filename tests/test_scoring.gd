@@ -100,14 +100,15 @@ func _test_coach() -> void:
 	shot.subject_screen_pos = Vector2(0.5, 0.5)
 	var lines := PhotoCoach.advice(PhotoScoring.score(shot, _cfg), shot, PhotoCamera.Setting.SHUTTER, true)
 	_check("coach gives one line per pillar", lines.size() == 4)
-	_check("coach flags exposure with the selected dial", not lines[0].ok and "make SHUTTER faster (R)" in lines[0].text)
+	_check("coach flags exposure with the selected dial", not lines[0].ok and "scroll SHUTTER faster (up)" in lines[0].text)
 	_check("coach flags focus with distances", not lines[1].ok and "0.5 m" in lines[1].text and "7.0 m" in lines[1].text)
 	_check("coach is happy with centered framing", lines[2].ok)
 	_check("coach is not all ok yet", not PhotoCoach.all_ok(lines))
 
-	_check("too dark on ISO says turn it up", "turn ISO up (R)" in PhotoCoach.exposure_hint(1.5, PhotoCamera.Setting.ISO))
-	_check("too bright on aperture says close it", "close the APERTURE (R)" in PhotoCoach.exposure_hint(-1.5, PhotoCamera.Setting.APERTURE))
+	_check("too dark on ISO says turn it up", "scroll ISO up" in PhotoCoach.exposure_hint(1.5, PhotoCamera.Setting.ISO))
+	_check("too bright on aperture says close it", "close the APERTURE (scroll up)" in PhotoCoach.exposure_hint(-1.5, PhotoCamera.Setting.APERTURE))
 	_check("zoom dial says pick another dial", "Q/E" in PhotoCoach.exposure_hint(-1.5, PhotoCamera.Setting.FOCAL_LENGTH))
+	_check("focus dial says pick another dial", "Q/E" in PhotoCoach.exposure_hint(-1.5, PhotoCamera.Setting.FOCUS))
 
 	shot.scene_ev -= 2.0
 	shot.focus_distance_m = 7.0

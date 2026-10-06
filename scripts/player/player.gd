@@ -25,9 +25,6 @@ enum Mode { EXPLORE, VIEWFINDER }
 ## How much of the aim pitch shows as the head tilting up/down (visual only).
 @export var head_tilt_amount := 0.6
 @export_group("Orbit")
-@export var orbit_min_length := 2.0
-@export var orbit_max_length := 6.0
-@export var orbit_zoom_step := 0.4
 @export var orbit_pitch_min := -1.2
 @export var orbit_pitch_max := 0.9
 
@@ -89,12 +86,6 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event is InputEventMouseButton and event.pressed and Input.mouse_mode != Input.MOUSE_MODE_CAPTURED:
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 		get_viewport().set_input_as_handled()
-	elif mode == Mode.EXPLORE and _ads == 0.0:
-		# The wheel focuses through the viewfinder; out here it zooms the orbit.
-		if event.is_action_pressed("focus_far"):
-			_spring_arm.spring_length = maxf(orbit_min_length, _spring_arm.spring_length - orbit_zoom_step)
-		elif event.is_action_pressed("focus_near"):
-			_spring_arm.spring_length = minf(orbit_max_length, _spring_arm.spring_length + orbit_zoom_step)
 
 
 func _physics_process(delta: float) -> void:

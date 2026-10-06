@@ -13,12 +13,11 @@ static func ensure_actions() -> void:
 	_add("raise_camera", [_mouse(MOUSE_BUTTON_RIGHT), _axis(JOY_AXIS_TRIGGER_LEFT, 1.0)])
 	_add("shoot", [_mouse(MOUSE_BUTTON_LEFT), _key(KEY_SPACE), _axis(JOY_AXIS_TRIGGER_RIGHT, 1.0)])
 	_add("autofocus", [_key(KEY_SHIFT), _button(JOY_BUTTON_X)])
-	_add("focus_far", [_mouse(MOUSE_BUTTON_WHEEL_UP), _key(KEY_X), _button(JOY_BUTTON_DPAD_RIGHT)])
-	_add("focus_near", [_mouse(MOUSE_BUTTON_WHEEL_DOWN), _key(KEY_Z), _button(JOY_BUTTON_DPAD_LEFT)])
-	_add("setting_next", [_key(KEY_E), _button(JOY_BUTTON_RIGHT_SHOULDER)])
-	_add("setting_prev", [_key(KEY_Q), _button(JOY_BUTTON_LEFT_SHOULDER)])
-	_add("value_up", [_key(KEY_R), _key(KEY_UP), _button(JOY_BUTTON_DPAD_UP)])
-	_add("value_down", [_key(KEY_F), _key(KEY_DOWN), _button(JOY_BUTTON_DPAD_DOWN)])
+	_add("setting_next", [_key(KEY_E), _button(JOY_BUTTON_RIGHT_SHOULDER), _button(JOY_BUTTON_DPAD_RIGHT)])
+	_add("setting_prev", [_key(KEY_Q), _button(JOY_BUTTON_LEFT_SHOULDER), _button(JOY_BUTTON_DPAD_LEFT)])
+	# The mouse wheel turns the selected dial (the arrow keys are a keyboard fallback).
+	_add("value_up", [_mouse(MOUSE_BUTTON_WHEEL_UP), _key(KEY_UP), _button(JOY_BUTTON_DPAD_UP)])
+	_add("value_down", [_mouse(MOUSE_BUTTON_WHEEL_DOWN), _key(KEY_DOWN), _button(JOY_BUTTON_DPAD_DOWN)])
 	_add("toggle_music", [_key(KEY_M), _button(JOY_BUTTON_BACK)])
 	_add("toggle_mouse", [_key(KEY_ESCAPE), _button(JOY_BUTTON_START)])
 

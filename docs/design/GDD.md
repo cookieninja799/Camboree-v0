@@ -102,9 +102,9 @@ Open question: image quality and pixel count as a 0.2×–1.0× multiplier (tier
 
 ### Controls (draft)
 
-- **Controller:** hold LT to raise the camera (ADS), RT shoots, X autofocuses (hold to track), LB/RB pick a dial, and the D-pad turns it (↑/↓) or focuses manually (←/→).
+- **Controller:** hold LT to raise the camera (ADS), RT shoots, X autofocuses (hold to track), LB/RB (or D-pad ←/→) pick a dial, and D-pad ↑/↓ turns it.
   - Open question: the original idea was "left stick moves the value up, right stick moves it down."
-- **Mouse + keyboard:** hold right click to raise the camera, left click shoots, Shift autofocuses (hold to track), the wheel focuses manually (or zooms the orbit camera when the camera is lowered), Q/E pick a dial, and R/F turn it.
+- **Mouse + keyboard:** hold right click to raise the camera, left click shoots, Shift autofocuses (hold to track), Q/E pick a dial, and the mouse wheel turns it. Focus is its own dial (a lens ring, 0.3 m to infinity), next to zoom.
 - **Autofocus takes time:** the lens motor racks focus (in diopters, like a real lens) over about 0.3 s. Shooting mid-rack can miss focus, which makes timing part of the skill.
 - **In-game tip:** set your settings before the action begins based on the environment, then make small adjustments as the light, shade, and movement change.
 

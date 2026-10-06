@@ -41,24 +41,24 @@ static func all_ok(lines: Array[Dictionary]) -> bool:
 	return true
 
 
-## What to do about exposure with the dial that's selected. R turns a dial up
-## (next value), F turns it down. Up on ISO is brighter; up on SHUTTER (faster)
-## and APERTURE (bigger f-number) is darker.
+## What to do about exposure with the dial that's selected. Scrolling up turns a
+## dial to its next value. Up on ISO is brighter; up on SHUTTER (faster) and
+## APERTURE (bigger f-number) is darker.
 static func exposure_hint(ev_error: float, selected: PhotoCamera.Setting) -> String:
 	var too_bright := ev_error < 0.0
 	var problem := "Exposure: %.1f stops too %s" % [absf(ev_error), "bright" if too_bright else "dark"]
 	match selected:
 		PhotoCamera.Setting.ISO:
-			return problem + (" · turn ISO down (F)" if too_bright else " · turn ISO up (R)")
+			return problem + (" · scroll ISO down" if too_bright else " · scroll ISO up")
 		PhotoCamera.Setting.SHUTTER:
-			return problem + (" · make SHUTTER faster (R)" if too_bright else " · make SHUTTER slower (F)")
+			return problem + (" · scroll SHUTTER faster (up)" if too_bright else " · scroll SHUTTER slower (down)")
 		PhotoCamera.Setting.APERTURE:
-			return problem + (" · close the APERTURE (R)" if too_bright else " · open the APERTURE (F)")
+			return problem + (" · close the APERTURE (scroll up)" if too_bright else " · open the APERTURE (scroll down)")
 	return problem + " · pick ISO, SHUTTER or APERTURE with Q/E"
 
 
 static func focus_hint(shot: ShotData) -> String:
-	return "Focus: at %.1f m, but the wanderer is %.1f m away · aim at them and press Shift to autofocus" % [
+	return "Focus: at %.1f m, but the wanderer is %.1f m away · press Shift to autofocus, or turn the FOCUS dial" % [
 		shot.focus_distance_m, shot.subject_distance_m,
 	]
 

@@ -11,20 +11,23 @@ signal settings_changed
 signal needs_raise
 signal focus_state_changed(state: FocusState)
 
-## Ordered left to right as the HUD dials appear.
-enum Setting { ISO, SHUTTER, APERTURE, FOCAL_LENGTH }
+## Ordered left to right as the HUD dials appear. FOCUS is the lens's focus ring.
+enum Setting { ISO, SHUTTER, APERTURE, FOCAL_LENGTH, FOCUS }
 
 enum FocusState { IDLE, DRIVING, LOCKED, FAILED }
 
-const SETTING_NAMES := ["ISO", "SHUTTER", "APERTURE", "ZOOM"]
+const SETTING_NAMES := ["ISO", "SHUTTER", "APERTURE", "ZOOM", "FOCUS"]
 
 const APERTURES := [1.4, 2.0, 2.8, 4.0, 5.6, 8.0, 11.0, 16.0, 22.0]
 const SHUTTERS := [1.0 / 15.0, 1.0 / 30.0, 1.0 / 60.0, 1.0 / 125.0, 1.0 / 250.0, 1.0 / 500.0, 1.0 / 1000.0, 1.0 / 2000.0, 1.0 / 4000.0]
 const ISOS := [100.0, 200.0, 400.0, 800.0, 1600.0, 3200.0]
 const FOCAL_LENGTHS := [18.0, 24.0, 35.0, 50.0, 85.0, 135.0, 200.0]
+## Distance marks printed on the focus ring, in meters (the last one reads as infinity).
+const FOCUS_MARKS := [0.3, 0.5, 0.7, 1.0, 1.5, 2.0, 3.0, 5.0, 7.0, 10.0, 15.0, 30.0, 200.0]
 const MIN_FOCUS_M := 0.3
 const MAX_FOCUS_M := 200.0
-const FOCUS_STEP := 1.06
+## One wheel notch on the focus ring moves this fraction of the gap between marks.
+const FOCUS_NOTCH := 1.0 / 3.0
 ## Lens travel is linear in diopters (1/meters), not meters.
 const FOCUS_LOCK_DIOPTERS := 0.003
 const AF_MOTOR_SOUND_GAP := 0.09
@@ -89,10 +92,6 @@ func _unhandled_input(event: InputEvent) -> void:
 			needs_raise.emit()
 	elif raised and event.is_action_pressed("autofocus"):
 		autofocus()
-	elif raised and event.is_action_pressed("focus_far"):
-		set_focus(focus_distance * FOCUS_STEP)
-	elif raised and event.is_action_pressed("focus_near"):
-		set_focus(focus_distance / FOCUS_STEP)
 	elif event.is_action_pressed("setting_next"):
 		select_offset(1)
 	elif event.is_action_pressed("setting_prev"):
@@ -128,6 +127,13 @@ func select_offset(offset: int) -> void:
 
 func step_selected(direction: int) -> void:
 	match selected:
+		Setting.FOCUS:
+			# Manual focus: turn the ring a fraction of a mark per notch.
+			var before := focus_distance
+			set_focus(focus_from_ring(focus_ring_position(focus_distance) + direction * FOCUS_NOTCH))
+			if not is_equal_approx(before, focus_distance):
+				Sfx.play(self, Sfx.dial_tick())
+			return
 		Setting.APERTURE:
 			_aperture_i = clampi(_aperture_i + direction, 0, APERTURES.size() - 1)
 		Setting.SHUTTER:
@@ -280,9 +286,39 @@ func visibility_of(subject: PhotoSubject) -> float:
 	return float(seen) / points.size()
 
 
-## Which entry of setting_labels() is currently set.
+## Where `distance_m` sits on the focus ring, as a fractional index into
+## FOCUS_MARKS (interpolated in diopters, the way a lens's scale is spaced).
+static func focus_ring_position(distance_m: float) -> float:
+	var d := clampf(distance_m, MIN_FOCUS_M, MAX_FOCUS_M)
+	for i in FOCUS_MARKS.size() - 1:
+		var near: float = FOCUS_MARKS[i]
+		var far: float = FOCUS_MARKS[i + 1]
+		if d <= far:
+			return i + inverse_lerp(1.0 / near, 1.0 / far, 1.0 / d)
+	return FOCUS_MARKS.size() - 1.0
+
+
+## The inverse of focus_ring_position().
+static func focus_from_ring(position: float) -> float:
+	var p := clampf(position, 0.0, FOCUS_MARKS.size() - 1.0)
+	var i := mini(int(p), FOCUS_MARKS.size() - 2)
+	var near: float = FOCUS_MARKS[i]
+	var far: float = FOCUS_MARKS[i + 1]
+	return 1.0 / lerpf(1.0 / near, 1.0 / far, p - i)
+
+
+## Where a setting's dial points, as a (possibly fractional) index into setting_labels().
+func setting_position(setting: Setting) -> float:
+	if setting == Setting.FOCUS:
+		return focus_ring_position(focus_distance)
+	return float(setting_index(setting))
+
+
+## Which entry of setting_labels() is currently set (nearest mark for focus).
 func setting_index(setting: Setting) -> int:
 	match setting:
+		Setting.FOCUS:
+			return roundi(focus_ring_position(focus_distance))
 		Setting.ISO:
 			return _iso_i
 		Setting.SHUTTER:
@@ -309,6 +345,9 @@ func setting_labels(setting: Setting) -> PackedStringArray:
 		Setting.FOCAL_LENGTH:
 			for value in FOCAL_LENGTHS:
 				labels.append(str(int(value)))
+		Setting.FOCUS:
+			for value in FOCUS_MARKS:
+				labels.append("inf" if value >= MAX_FOCUS_M else ("%.1f" % value).trim_suffix(".0"))
 	return labels
 
 
@@ -321,6 +360,8 @@ func setting_readout(setting: Setting) -> String:
 			return PhotoScoring.format_shutter(shutter_s)
 		Setting.APERTURE:
 			return PhotoScoring.format_aperture(aperture)
+		Setting.FOCUS:
+			return "inf" if focus_distance >= MAX_FOCUS_M * 0.99 else "%.1f m" % focus_distance
 	return "%dmm" % focal_length_mm
 
 

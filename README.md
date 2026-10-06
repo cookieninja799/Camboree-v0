@@ -19,10 +19,8 @@ A cozy, silly, low-poly photography RPG for 1–4 players. Think Stardew Valley 
 | Raise camera (aim down sights) | **Hold** right click | **Hold** left trigger |
 | Shoot (camera raised) | Left click or Space | Right trigger |
 | Autofocus (camera raised): tap = once, hold = track | Shift | X |
-| Manual focus (camera raised) | Mouse wheel or Z / X | D-pad left / right |
-| Orbit zoom (camera lowered) | Mouse wheel | — |
-| Pick dial (ISO, shutter, aperture, zoom) | Q / E | LB / RB |
-| Turn the selected dial | R / F or ↑ / ↓ | D-pad up / down |
+| Pick dial (ISO, shutter, aperture, zoom, focus) | Q / E | LB / RB or D-pad left / right |
+| Turn the selected dial | **Mouse wheel** (or ↑ / ↓) | D-pad up / down |
 | Pause / resume music | M | Back |
 | Free / capture mouse | Esc | Start |
 
@@ -30,9 +28,9 @@ A cozy, silly, low-poly photography RPG for 1–4 players. Think Stardew Valley 
 
 **Autofocus is a motor, not a snap:** Shift racks the lens toward whatever is under the focus bracket over about a third of a second, with a whir, then a double beep and a green bracket on lock. Shoot before it locks and you can miss focus. Hold Shift to keep tracking a moving subject. With nothing under the bracket (sky), the lens hunts and gives up with a red bracket.
 
-**First start:** the camera begins with its settings out of whack (exposure 2–3.5 stops off, focus far too close). During the first round a coach checklist under the brief shows what's wrong live, phrased for the dial you have selected ("3.0 stops too bright · close the APERTURE (R)"), and turns green when everything is fixed. You can still shoot at any time, but a bad setup scores badly. `scramble_on_start` and `coach_rounds` on the root node control this.
+**First start:** the camera begins with its settings out of whack (exposure 2–3.5 stops off, focus far too close). During the first round a coach checklist under the brief shows what's wrong live, phrased for the dial you have selected ("3.0 stops too bright · close the APERTURE (scroll up)"), and turns green when everything is fixed. You can still shoot at any time, but a bad setup scores badly. `scramble_on_start` and `coach_rounds` on the root node control this.
 
-**The HUD:** four camera dials rise from the bottom of the screen: ISO, shutter, aperture, and zoom. Q/E moves between them. The selected dial lifts and shows curved arrows, and R/F turns it with a click. The dials work in both views: compact while exploring (so you can preset exposure before the action), full size in the viewfinder.
+**The HUD:** five camera dials rise from the bottom of the screen: ISO, shutter, aperture, zoom, and focus. Q/E moves between them. The selected dial lifts and shows curved arrows, and the mouse wheel turns it with a click. Focus is a lens ring marked 0.3 m to infinity (spaced like a real lens scale): each wheel notch turns it a third of a mark, and autofocus turns it for you as the lens racks. The dials work in both views: compact while exploring (so you can preset exposure before the action), full size in the viewfinder.
 
 **The round:** get a 4-star shot of the wanderer within 5 shots. After each shot, the photo drops in as a polaroid. Stars pop in one at a time with rising chimes (a sad "bwomp" means 0 stars), bars fill in for each pillar (Focus, Exposure, Framing, In view), and a tip coaches your weakest pillar. Shoot again after a round ends to start a new one. You can tune `target_stars` and `shots_per_round` on the scene's root node.
 

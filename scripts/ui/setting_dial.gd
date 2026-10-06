@@ -18,6 +18,9 @@ var labels := PackedStringArray()
 var readout := ""
 var index := 0
 var selected := false
+## Don't click when the value changes (the focus ring moves continuously during
+## autofocus; the camera plays its own click for manual turns).
+var silent := false
 
 # Animated: which value faces the pointer (fractional mid-turn), and how far the dial is lifted (0-1).
 var _shown := 0.0:
@@ -29,25 +32,32 @@ var _lift := 0.0:
 		_lift = value
 		queue_redraw()
 var _tweens := {}
+var _target := 0.0
 
 
-func setup(p_title: String, p_labels: PackedStringArray, p_index: int, p_readout: String) -> void:
+## `position` is an index into `p_labels`; fractional values sit between marks.
+func setup(p_title: String, p_labels: PackedStringArray, position: float, p_readout: String) -> void:
 	title = p_title
 	labels = p_labels
-	index = p_index
+	index = roundi(position)
 	readout = p_readout
-	_shown = float(p_index)
+	_target = position
+	_shown = position
 
 
-## Turns the dial to a new value with a click.
-func set_value(p_index: int, p_readout: String) -> void:
+## Turns the dial to a new position, with a click when it lands on a new mark.
+func set_value(position: float, p_readout: String) -> void:
 	readout = p_readout
 	queue_redraw()
-	if p_index == index:
+	if is_equal_approx(position, _target):
 		return
-	index = p_index
-	_animate("_shown", float(index), 0.16)
-	Sfx.play(self, Sfx.dial_tick())
+	_target = position
+	var new_index := roundi(position)
+	var moved_mark := new_index != index
+	index = new_index
+	_animate("_shown", position, 0.16)
+	if moved_mark and not silent:
+		Sfx.play(self, Sfx.dial_tick())
 
 
 func set_selected(on: bool) -> void:

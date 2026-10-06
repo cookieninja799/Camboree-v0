@@ -4,7 +4,7 @@
 
 ## Pitch
 
-A 1–4 player cozy photography RPG set in **Ayesso City**. You take over your grandmother's photo studio, learn to shoot, and help the city come alive one photo at a time. Each style of photography plays like a different game.
+A 1–4 player cozy photography RPG set in a lively city. You take over your grandmother's photo studio, learn to shoot, and help the city come alive one photo at a time. Each style of photography plays like a different game.
 
 **Inspirations:** Stardew Valley, WarioWare, Pokémon Snap, Katamari Damacy, Animal Crossing.
 
@@ -175,7 +175,7 @@ Each style plays differently, and some overlap. Paid shoots earn more, and pay v
 
 **Gigs:** characters post requests, either for a portrait shoot or for a photo that meets certain criteria.
 
-## Locations: Ayesso City
+## Locations: the city
 
 - **The Studio:** the main hub, with an apartment upstairs. Fully decoratable.
 - The city can be explored on foot. A bike, skateboard, or rollerskates can be bought at the sporting goods shop. Rails, ledges, and stairs everywhere for skating.
@@ -262,7 +262,7 @@ The full design is a multi-year game. The first playable slice is:
 
 1. **Burst mode prototype:** the camera plus scoring v0 in microgames. ← *we are here: a sandbox round (4★ within 5 shots) with a polaroid, star chimes, and pillar bars*
    - Next: **briefs** that change what a good shot means each round ("blurry background", "freeze the runner", "subject on the left third"). This turns one sandbox into a game.
-2. One hub block of Ayesso City, Grandmother, and the full loop (settings → shoot → score → sell).
+2. One hub block of the city, Grandmother, and the full loop (settings → shoot → score → sell).
 3. One style, probably Street or Nature.
 4. The film darkroom minigame as the "wow" feature.
 
@@ -274,6 +274,7 @@ The full design is a multi-year game. The first playable slice is:
 - How should the Assisted tier split: aperture priority and shutter priority, or a single "program" tier?
 - The controller layout for changing values.
 - Image quality / pixel-count multiplier.
+- The city's name (still to be decided).
 - Is the city free of stairs-only routes? (accessibility)
 - Is the forest magic in or out?
 - The gallery curator and intern.

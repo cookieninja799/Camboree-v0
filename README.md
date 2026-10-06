@@ -4,6 +4,7 @@ A cozy, silly, low-poly photography RPG for 1–4 players. Think Stardew Valley 
 
 - Game design document: [`docs/design/GDD.md`](docs/design/GDD.md)
 - Photo scoring spec: [`docs/design/scoring-v0.md`](docs/design/scoring-v0.md)
+- Audio manifest (every music track and sound effect): [`docs/audio-manifest.md`](docs/audio-manifest.md)
 
 ## Getting started
 

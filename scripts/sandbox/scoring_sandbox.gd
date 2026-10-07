@@ -128,7 +128,9 @@ func _on_shot_taken(shot: ShotData) -> void:
 		for requirement in brief.requirements:
 			if requirement.required and not requirement.evaluate(result):
 				missed.append(requirement.describe())
-		result.tip = "Doesn't count: %s. %s" % [", ".join(missed), result.tip]
+		# The broken rule is the whole story; the general tip would just repeat it
+		# and push the text into the controls hint below.
+		result.tip = "Doesn't count: %s." % ", ".join(missed)
 		stamp = "DOESN'T COUNT"
 	if runner.state == RoundRunner.State.WON:
 		stamp = "BRIEF COMPLETE" + (" +BONUS" if runner.bonus_met else "")

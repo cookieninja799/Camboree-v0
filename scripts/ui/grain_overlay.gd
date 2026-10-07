@@ -13,6 +13,11 @@ var view_amount := 1.0:
 		view_amount = value
 		_push()
 
+## Scales what the shader draws. At 1.0, ISO 3200 already hid the subject and
+## ISO 12800 hid everything, so players lost the shot to not being able to see.
+## The grade (noise pillar) is unaffected; this is only how strong it looks.
+@export var max_strength := 0.5
+
 var _amount := 0.0
 var _chroma := 0.0
 var _rect: ColorRect
@@ -46,7 +51,7 @@ func amount() -> float:
 func _push() -> void:
 	if _material == null:
 		return
-	var strength := _amount * view_amount
+	var strength := _amount * view_amount * max_strength
 	_material.set_shader_parameter("amount", strength)
 	_material.set_shader_parameter("chroma", _chroma * view_amount)
 	# Skip the full-screen pass entirely when there's nothing to draw.

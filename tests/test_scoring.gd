@@ -226,7 +226,7 @@ func _test_full_shot() -> void:
 	shot.scene_ev -= 2.0
 	var dark := PhotoScoring.score(shot, _cfg)
 	_check("underexposed worst pillar is exposure", dark.worst == "exposure")
-	_check("underexposed tip says too dark", dark.tip == "2.0 stops too dark.")
+	_check("underexposed tip says too dark and what to turn (%s)" % dark.tip, dark.tip == "2.0 stops too dark. Next time, open the aperture.")
 
 	shot.visibility = 0.0
 	_near("hidden subject scores 0", PhotoScoring.score(shot, _cfg).score, 0.0, 1e-6)
@@ -329,6 +329,54 @@ func _test_exposure_advice() -> void:
 	_check("too bright: the selected dial is fine if it can fix it (%s)" % hint, "close the APERTURE (scroll up)" in hint)
 	hint = PhotoCoach.exposure_hint(-2.0, PhotoCamera.Setting.FOCUS, shot, dusk)
 	_check("too bright from another dial: lower ISO first (%s)" % hint, "lower ISO: pick ISO (1)" in hint)
+
+	# Raising ISO stops where the coach would start calling it grainy, so the
+	# exposure and noise lines can't send you back and forth.
+	_check("ISO cap is where noise is still OK (%d)" % PhotoCoach.max_clean_iso(dusk), PhotoCoach.max_clean_iso(dusk) == 800.0)
+	shot.aperture_n = 1.4
+	shot.shutter_s = 1.0 / 30.0
+	shot.iso = 800.0
+	hint = PhotoCoach.exposure_hint(3.0, PhotoCamera.Setting.ISO, shot, dusk)
+	_check("at ISO 800, wide open and slow: no more ISO (%s)" % hint, "raise ISO" not in hint and "scroll ISO up" not in hint)
+
+	# Motion: faster shutter, else zoom out, else wait.
+	var bird := ShotData.new()
+	bird.focal_length_mm = 200.0
+	bird.subject_distance_m = 8.0
+	bird.subject_speed_mps = 40.0
+	bird.shutter_s = 1.0 / 500.0
+	var bird_cfg: ScoringConfig = load("res://resources/scoring/bird_scoring_config.tres")
+	_check("motion: shutter has room, so speed it up", "speed up the SHUTTER" in PhotoCoach.motion_hint(bird, PhotoCamera.Setting.ISO, bird_cfg))
+	bird.shutter_s = 1.0 / 4000.0
+	var m := PhotoCoach.motion_hint(bird, PhotoCamera.Setting.SHUTTER, bird_cfg)
+	_check("motion: shutter maxed, zoom out instead (%s)" % m, "already at its fastest" in m and "ZOOM" in m and "scroll SHUTTER" not in m)
+	bird.focal_length_mm = 18.0
+	m = PhotoCoach.motion_hint(bird, PhotoCamera.Setting.SHUTTER, bird_cfg)
+	_check("motion: shutter and zoom maxed, wait (%s)" % m, "wait" in m and "ZOOM (4)" not in m)
+
+	# Noise: say what makes up the light, based on what still has room.
+	var grainy := ShotData.new()
+	grainy.iso = 6400.0
+	grainy.aperture_n = 8.0
+	_check("noise: aperture has room, open it", "open the APERTURE" in PhotoCoach.noise_hint(grainy, PhotoCamera.Setting.ISO, dusk))
+	grainy.aperture_n = 1.4
+	grainy.shutter_s = 1.0 / 250.0
+	var n := PhotoCoach.noise_hint(grainy, PhotoCamera.Setting.ISO, dusk)
+	_check("noise: wide open, so slow the shutter (%s)" % n, "slow the SHUTTER" in n and "APERTURE (3)" not in n)
+	grainy.shutter_s = 1.0 / 30.0
+	n = PhotoCoach.noise_hint(grainy, PhotoCamera.Setting.ISO, dusk)
+	_check("noise: nothing left, say it'll be darker (%s)" % n, "darker" in n and "SHUTTER (2)" not in n)
+
+	# The polaroid tip follows the same rules.
+	var tip_shot := ShotData.new()
+	tip_shot.iso = 12800.0
+	tip_shot.aperture_n = 11.0
+	tip_shot.shutter_s = 1.0 / 250.0
+	var t := PhotoScoring.tip("exposure", 0.0, tip_shot, 5.9, dusk)
+	_check("polaroid exposure tip says what to turn (%s)" % t, t.ends_with("Next time, open the aperture."))
+	bird.focal_length_mm = 200.0
+	t = PhotoScoring.tip("motion", 0.0, bird, 0.0, bird_cfg)
+	_check("polaroid motion tip at max shutter says zoom out (%s)" % t, "Zoom out" in t)
 
 
 func _test_focus_motor() -> void:

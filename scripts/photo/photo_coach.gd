@@ -38,7 +38,7 @@ static func advice(result: Dictionary, shot: ShotData, selected: PhotoCamera.Set
 			"Motion" if result.motion >= GOOD else motion_hint(shot, selected, cfg)))
 	if cfg and cfg.noise_weight > 0.0:
 		lines.append(_line("noise", result.noise >= GOOD,
-			"Noise" if result.noise >= GOOD else noise_hint(shot, selected)))
+			"Noise" if result.noise >= GOOD else noise_hint(shot, selected, cfg)))
 	lines.append(_line("gate", result.gate >= GOOD,
 		"In view" if result.gate >= GOOD else "In view: part of %s is hidden or out of frame" % subject))
 	return lines
@@ -115,11 +115,16 @@ static func slowest_steady_shutter(shot: ShotData, cfg: ScoringConfig) -> float:
 	return steady
 
 
-## The highest ISO the coach will suggest: where the noise pillar is still at
-## half (ISO 1600 by default). Past that the shot gets grainier, not better.
+## The highest ISO the coach will suggest raising to: the highest dial ISO
+## whose noise the coach still marks OK (ISO 800 by default). Going past it
+## would just trade the exposure warning for a noise one.
 static func max_clean_iso(cfg: ScoringConfig) -> float:
 	var c := cfg if cfg else ScoringConfig.new()
-	return 100.0 * pow(2.0, (c.noise_ok_stops + c.noise_bad_stops) * 0.5)
+	var best: float = PhotoCamera.ISOS[0]
+	for iso in PhotoCamera.ISOS:
+		if PhotoScoring.noise_score(iso, c) >= GOOD:
+			best = iso
+	return best
 
 
 ## " · scroll ISO up" when that dial is selected, else how to get to it.
@@ -151,24 +156,46 @@ static func focus_hint(shot: ShotData, subject := "the wanderer") -> String:
 	]
 
 
-## The subject is moving too fast for the shutter.
+## The subject is moving too fast for the shutter. Faster shutter first; if the
+## dial is already at its fastest, a shorter lens shrinks the smear instead.
 static func motion_hint(shot: ShotData, selected: PhotoCamera.Setting, cfg: ScoringConfig) -> String:
-	var needed := PhotoScoring.dial_shutter_at_most(PhotoScoring.freeze_shutter_s(shot.focal_length_mm, shot.subject_distance_m, shot.subject_speed_mps, cfg))
+	var freeze := PhotoScoring.freeze_shutter_s(shot.focal_length_mm, shot.subject_distance_m, shot.subject_speed_mps, cfg)
+	var needed := PhotoScoring.dial_shutter_at_most(freeze)
 	var problem := "Motion: subject is moving, it needs %s or faster" % PhotoScoring.format_shutter(needed)
-	if selected == PhotoCamera.Setting.SHUTTER:
-		return problem + " · scroll SHUTTER faster (up)"
-	return problem + " · pick SHUTTER (2)"
+	if not at_fastest_shutter(shot):
+		if selected == PhotoCamera.Setting.SHUTTER:
+			return problem + " · scroll SHUTTER faster (up)"
+		return problem + " · speed up the SHUTTER: pick it (2) and scroll up"
+	problem = "Motion: the shutter is already at its fastest"
+	if not at_widest_zoom(shot):
+		if selected == PhotoCamera.Setting.FOCAL_LENGTH:
+			return problem + " · scroll ZOOM out (down) so it smears less"
+		return problem + " · zoom out so it smears less: pick ZOOM (4) and scroll down"
+	return problem + " and fully zoomed out · wait for it to come by slower or farther away"
 
 
-## Too much ISO. Lowering it darkens the shot, so pair it with a wider aperture.
-static func noise_hint(shot: ShotData, selected: PhotoCamera.Setting) -> String:
+## Too much ISO. Lowering it darkens the shot, so the hint names what can make
+## up the light: a wider aperture, else a slower shutter, else nothing.
+static func noise_hint(shot: ShotData, selected: PhotoCamera.Setting, cfg: ScoringConfig = null) -> String:
 	var problem := "Noise: grainy at ISO %d" % roundi(shot.iso)
-	match selected:
-		PhotoCamera.Setting.ISO:
-			return problem + " · scroll ISO down, then open the APERTURE to keep it bright"
-		PhotoCamera.Setting.APERTURE:
-			return problem + " · open the APERTURE (scroll down) so ISO can come down"
-	return problem + " · pick ISO (1) and lower it"
+	var lower := " · scroll ISO down" if selected == PhotoCamera.Setting.ISO else " · lower ISO: pick ISO (1) and scroll down"
+	if not at_widest_aperture(shot):
+		return problem + lower + ", then open the APERTURE (3) to keep it bright"
+	if shot.shutter_s * 1.9 <= minf(PhotoCamera.SHUTTERS[0], slowest_steady_shutter(shot, cfg)):
+		return problem + lower + ", then slow the SHUTTER (2) to keep it bright"
+	return problem + lower + " · the aperture is wide open and the shutter can't go slower, so it'll come out darker"
+
+
+static func at_fastest_shutter(shot: ShotData) -> bool:
+	return shot.shutter_s <= PhotoCamera.SHUTTERS[-1] * 1.01
+
+
+static func at_widest_aperture(shot: ShotData) -> bool:
+	return shot.aperture_n <= PhotoCamera.APERTURES[0] * 1.01
+
+
+static func at_widest_zoom(shot: ShotData) -> bool:
+	return shot.focal_length_mm <= PhotoCamera.FOCAL_LENGTHS[0] + 0.5
 
 
 static func _line(pillar: String, ok: bool, text: String) -> Dictionary:

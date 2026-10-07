@@ -162,15 +162,35 @@ static func tip(worst: String, worst_value: float, shot: ShotData, ev_err: float
 				line += " Stop down for more depth of field."
 			return line
 		"exposure":
-			return "%.1f stops too %s." % [absf(ev_err), "dark" if ev_err > 0.0 else "bright"]
+			return "%.1f stops too %s.%s" % [absf(ev_err), "dark" if ev_err > 0.0 else "bright", _exposure_next_time(ev_err, shot, cfg)]
 		"placement":
 			return "Try putting the subject on a rule-of-thirds intersection."
 		"motion":
+			if PhotoCoach.at_fastest_shutter(shot):
+				if PhotoCoach.at_widest_zoom(shot):
+					return "Subject is moving faster than the shutter can freeze. Wait for a slower pass."
+				return "Subject is moving and the shutter is maxed out. Zoom out so it smears less."
 			var needed := freeze_shutter_s(shot.focal_length_mm, shot.subject_distance_m, shot.subject_speed_mps, cfg)
 			return "Subject is moving. Try a faster shutter (%s or faster)." % format_shutter(dial_shutter_at_most(needed))
 		"noise":
-			return "Grainy at ISO %d. Lower the ISO, or open up the aperture to make room." % roundi(shot.iso)
+			if not PhotoCoach.at_widest_aperture(shot):
+				return "Grainy at ISO %d. Lower the ISO and open up the aperture to make up the light." % roundi(shot.iso)
+			return "Grainy at ISO %d. Lower the ISO and use a slower shutter to make up the light." % roundi(shot.iso)
 	return ""
+
+
+## " Next time, open the aperture." using the coach's dial-aware order, or "".
+static func _exposure_next_time(ev_err: float, shot: ShotData, cfg: ScoringConfig) -> String:
+	var options := PhotoCoach._exposure_options(ev_err < 0.0, shot, cfg)
+	if options.is_empty():
+		return ""
+	var too_bright := ev_err < 0.0
+	match options[0]:
+		PhotoCamera.Setting.ISO:
+			return " Next time, %s the ISO." % ("lower" if too_bright else "raise")
+		PhotoCamera.Setting.SHUTTER:
+			return " Next time, use a %s shutter." % ("faster" if too_bright else "slower")
+	return " Next time, %s the aperture." % ("close" if too_bright else "open")
 
 
 static func log2(x: float) -> float:

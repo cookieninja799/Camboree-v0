@@ -249,6 +249,7 @@ func _test_coach() -> void:
 	_check("too bright on aperture says close it", "close the APERTURE (scroll up)" in PhotoCoach.exposure_hint(-1.5, PhotoCamera.Setting.APERTURE))
 	_check("zoom dial says pick another dial", "APERTURE (3)" in PhotoCoach.exposure_hint(-1.5, PhotoCamera.Setting.FOCAL_LENGTH))
 	_check("focus dial says pick another dial", "ISO (1)" in PhotoCoach.exposure_hint(-1.5, PhotoCamera.Setting.FOCUS))
+	_test_exposure_advice()
 
 	shot.scene_ev -= 2.0
 	shot.focus_distance_m = 7.0
@@ -292,6 +293,42 @@ func _test_coach() -> void:
 	_check("coach names the brief's subject in focus, framing, and in-view lines",
 		"the model is 4.0 m away" in named[1].text and "the model's head" in named[2].text and "part of the model" in named[3].text)
 	_check("coach wording defaults to the wanderer", "the wanderer is" in PhotoCoach.focus_hint(model))
+
+
+## The playtest case: dusk, ISO maxed out, stopped down, still far too dark.
+## The coach must not say "raise ISO"; it should open the aperture first.
+func _test_exposure_advice() -> void:
+	var dusk: ScoringConfig = load("res://resources/scoring/dusk_scoring_config.tres")
+	var shot := ShotData.new()
+	shot.scene_ev = 2.0
+	shot.iso = 12800.0
+	shot.aperture_n = 11.0
+	shot.shutter_s = 1.0 / 250.0
+	shot.subject_distance_m = 7.0
+	shot.subject_speed_mps = 0.4
+	var err := PhotoScoring.ev_error(shot.aperture_n, shot.shutter_s, shot.iso, shot.scene_ev)
+	var hint := PhotoCoach.exposure_hint(err, PhotoCamera.Setting.ISO, shot, dusk)
+	_check("maxed ISO, too dark: open the aperture, not more ISO (%s)" % hint, "open the APERTURE" in hint and "raise ISO" not in hint and "scroll ISO up" not in hint)
+
+	shot.aperture_n = 1.4
+	hint = PhotoCoach.exposure_hint(err, PhotoCamera.Setting.ISO, shot, dusk)
+	_check("wide open, too dark: slow the shutter next (%s)" % hint, "SHUTTER" in hint and "ISO" not in hint.get_slice("·", 1))
+
+	shot.shutter_s = 1.0 / 30.0
+	shot.iso = 200.0
+	hint = PhotoCoach.exposure_hint(err, PhotoCamera.Setting.APERTURE, shot, dusk)
+	_check("wide open and slow, low ISO: raise ISO last (%s)" % hint, "raise ISO" in hint)
+	shot.iso = 1600.0
+	hint = PhotoCoach.exposure_hint(err, PhotoCamera.Setting.ISO, shot, dusk)
+	_check("never suggests ISO past the grain limit (%s)" % hint, "raise ISO" not in hint and "scroll ISO up" not in hint and "grain" in hint)
+
+	shot.iso = 3200.0
+	shot.aperture_n = 8.0
+	shot.shutter_s = 1.0 / 60.0
+	hint = PhotoCoach.exposure_hint(-2.0, PhotoCamera.Setting.APERTURE, shot, dusk)
+	_check("too bright: the selected dial is fine if it can fix it (%s)" % hint, "close the APERTURE (scroll up)" in hint)
+	hint = PhotoCoach.exposure_hint(-2.0, PhotoCamera.Setting.FOCUS, shot, dusk)
+	_check("too bright from another dial: lower ISO first (%s)" % hint, "lower ISO: pick ISO (1)" in hint)
 
 
 func _test_focus_motor() -> void:

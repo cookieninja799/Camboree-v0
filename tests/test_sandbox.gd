@@ -203,7 +203,7 @@ func _test_round(scene: ScoringSandbox) -> void:
 	scene._on_shot_taken(_perfect_shot())
 	var sun: DirectionalLight3D = scene.get_node("Sun")
 	_check("the next shot moves on to the dusk brief", runner.index == 1 and runner.state == RoundRunner.State.PLAYING and runner.shots_left == 6)
-	_check("moving on keeps the last polaroid up", hud.is_polaroid_visible() and hud.polaroid_stars() == 5)
+	_check("moving on clears the last shot's polaroid, bars, and tip", not hud.is_polaroid_visible() and not hud.is_result_visible())
 	_check("the dusk brief is coached too", scene.coach_active())
 	_check("dusk dims the light and darkens the scene", camera.scene_ev == 2.0 and sun.light_energy < 0.5 and camera.render_gain > 1.0)
 	_check("dusk grades noise and shows its bar", scene.config.noise_weight > 0.0 and hud.has_bar("noise") and hud.has_bar("motion"))

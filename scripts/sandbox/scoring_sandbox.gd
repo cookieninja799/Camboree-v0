@@ -92,8 +92,9 @@ func _on_brief_started(brief: Brief) -> void:
 	grain.set_iso(_camera.iso, config)
 	if brief.scramble and scramble_on_start and runner.attempt == 1:
 		_camera.scramble()
-	# The last shot's polaroid stays up (the player just saw it win or lose the
-	# brief); the first shot of this brief replaces it.
+	# A fresh brief starts with a clean HUD: no polaroid, bars, or tip left over
+	# from the last shot.
+	_hud.clear_result()
 	_hud.hide_coach()
 	if runner.attempt == 1:
 		_hud.show_card(_card_title(brief), _card_body(brief))

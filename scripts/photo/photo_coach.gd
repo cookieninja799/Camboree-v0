@@ -19,16 +19,16 @@ static func advice(result: Dictionary, shot: ShotData, selected: PhotoCamera.Set
 	var lines: Array[Dictionary] = []
 	if not raised:
 		lines.append(_line("raise", false, "Raise your camera: hold RMB (LT)"))
-		lines.append(_line("exposure", result.exposure >= GOOD, "Exposure" if result.exposure >= GOOD else exposure_hint(result.ev_error, selected)))
+		lines.append(_line("exposure", result.exposure >= GOOD, "Exposure" if result.exposure >= GOOD else exposure_hint(result.ev_error, selected, shot, cfg)))
 		return lines
 	if not subject_found:
 		var find := "Wait for %s, it flies past every few seconds" % subject if flyer else "Find %s (the orange capsule)" % subject
 		lines.append(_line("gate", false, find))
-		lines.append(_line("exposure", result.exposure >= GOOD, "Exposure" if result.exposure >= GOOD else exposure_hint(result.ev_error, selected)))
+		lines.append(_line("exposure", result.exposure >= GOOD, "Exposure" if result.exposure >= GOOD else exposure_hint(result.ev_error, selected, shot, cfg)))
 		return lines
 
 	lines.append(_line("exposure", result.exposure >= GOOD,
-		"Exposure" if result.exposure >= GOOD else exposure_hint(result.ev_error, selected)))
+		"Exposure" if result.exposure >= GOOD else exposure_hint(result.ev_error, selected, shot, cfg)))
 	lines.append(_line("focus", result.focus >= GOOD,
 		"Focus" if result.focus >= GOOD else focus_hint(shot, subject)))
 	lines.append(_line("placement", result.placement >= GOOD,
@@ -51,20 +51,98 @@ static func all_ok(lines: Array[Dictionary]) -> bool:
 	return true
 
 
-## What to do about exposure with the dial that's selected. Scrolling up turns a
-## dial to its next value. Up on ISO is brighter; up on SHUTTER (faster) and
-## APERTURE (bigger f-number) is darker.
-static func exposure_hint(ev_error: float, selected: PhotoCamera.Setting) -> String:
+## What to do about exposure. Scrolling up turns a dial to its next value: up on
+## ISO is brighter; up on SHUTTER (faster) and APERTURE (bigger f-number) is darker.
+##
+## With the `shot`, the advice looks at where every dial sits and picks the
+## best one to turn, never one that's already at its end:
+## - Too dark: open the aperture first, then slow the shutter (only while that
+##   won't blur a moving subject), and raise ISO last, only up to the grain limit.
+## - Too bright: lower ISO first (that also cuts grain), then a faster shutter,
+##   then close the aperture.
+## Without a shot it falls back to the selected dial.
+static func exposure_hint(ev_error: float, selected: PhotoCamera.Setting, shot: ShotData = null, cfg: ScoringConfig = null) -> String:
 	var too_bright := ev_error < 0.0
 	var problem := "Exposure: %.1f stops too %s" % [absf(ev_error), "bright" if too_bright else "dark"]
-	match selected:
+	if shot == null:
+		match selected:
+			PhotoCamera.Setting.ISO, PhotoCamera.Setting.SHUTTER, PhotoCamera.Setting.APERTURE:
+				return problem + _turn(selected, too_bright, true)
+		return problem + " · pick ISO (1), SHUTTER (2) or APERTURE (3)"
+
+	var options := _exposure_options(too_bright, shot, cfg)
+	if options.is_empty():
+		if too_bright:
+			return problem + " · every dial is at its darkest"
+		return problem + " · the aperture is wide open and the shutter is as slow as the subject allows; take it a bit dark, or accept more grain with a higher ISO"
+	# Turning the dial that's already selected is fine if it's one of the good options.
+	var pick: PhotoCamera.Setting = selected if options.has(selected) else options[0]
+	return problem + _turn(pick, too_bright, pick == selected)
+
+
+## Dials that can still fix the exposure, best first.
+static func _exposure_options(too_bright: bool, shot: ShotData, cfg: ScoringConfig) -> Array:
+	var options := []
+	var widest: float = PhotoCamera.APERTURES[0]
+	var narrowest: float = PhotoCamera.APERTURES[-1]
+	var slowest: float = PhotoCamera.SHUTTERS[0]
+	var fastest: float = PhotoCamera.SHUTTERS[-1]
+	var lowest_iso: float = PhotoCamera.ISOS[0]
+	if too_bright:
+		if shot.iso > lowest_iso * 1.01:
+			options.append(PhotoCamera.Setting.ISO)
+		if shot.shutter_s > fastest * 1.01:
+			options.append(PhotoCamera.Setting.SHUTTER)
+		if shot.aperture_n < narrowest * 0.99:
+			options.append(PhotoCamera.Setting.APERTURE)
+		return options
+	if shot.aperture_n > widest * 1.01:
+		options.append(PhotoCamera.Setting.APERTURE)
+	if shot.shutter_s * 1.9 <= minf(slowest, slowest_steady_shutter(shot, cfg)):
+		options.append(PhotoCamera.Setting.SHUTTER)
+	if shot.iso * 1.9 <= max_clean_iso(cfg):
+		options.append(PhotoCamera.Setting.ISO)
+	return options
+
+
+## The slowest shutter that won't visibly blur the subject: its freeze speed
+## when the brief scores motion and the subject moves, otherwise 1/30 s
+## (hand-held). Never slower than that.
+static func slowest_steady_shutter(shot: ShotData, cfg: ScoringConfig) -> float:
+	var steady := 1.0 / 30.0
+	if cfg and cfg.motion_weight > 0.0 and shot.subject_speed_mps > 0.0:
+		steady = minf(steady, PhotoScoring.freeze_shutter_s(shot.focal_length_mm, shot.subject_distance_m, shot.subject_speed_mps, cfg))
+	return steady
+
+
+## The highest ISO the coach will suggest: where the noise pillar is still at
+## half (ISO 1600 by default). Past that the shot gets grainier, not better.
+static func max_clean_iso(cfg: ScoringConfig) -> float:
+	var c := cfg if cfg else ScoringConfig.new()
+	return 100.0 * pow(2.0, (c.noise_ok_stops + c.noise_bad_stops) * 0.5)
+
+
+## " · scroll ISO up" when that dial is selected, else how to get to it.
+static func _turn(setting: PhotoCamera.Setting, too_bright: bool, is_selected: bool) -> String:
+	var action := ""
+	var direction := ""
+	match setting:
 		PhotoCamera.Setting.ISO:
-			return problem + (" · scroll ISO down" if too_bright else " · scroll ISO up")
+			action = "lower ISO" if too_bright else "raise ISO"
+			direction = "down" if too_bright else "up"
+			if is_selected:
+				return " · scroll ISO %s" % direction
+			return " · %s: pick ISO (1) and scroll %s" % [action, direction]
 		PhotoCamera.Setting.SHUTTER:
-			return problem + (" · scroll SHUTTER faster (up)" if too_bright else " · scroll SHUTTER slower (down)")
-		PhotoCamera.Setting.APERTURE:
-			return problem + (" · close the APERTURE (scroll up)" if too_bright else " · open the APERTURE (scroll down)")
-	return problem + " · pick ISO (1), SHUTTER (2) or APERTURE (3)"
+			direction = "up" if too_bright else "down"
+			if is_selected:
+				return " · scroll SHUTTER %s (%s)" % ["faster" if too_bright else "slower", direction]
+			return " · %s the SHUTTER: pick it (2) and scroll %s" % ["speed up" if too_bright else "slow down", direction]
+		_:
+			direction = "up" if too_bright else "down"
+			if is_selected:
+				return " · %s the APERTURE (scroll %s)" % ["close" if too_bright else "open", direction]
+			return " · %s the APERTURE: pick it (3) and scroll %s" % ["close" if too_bright else "open", direction]
 
 
 static func focus_hint(shot: ShotData, subject := "the wanderer") -> String:

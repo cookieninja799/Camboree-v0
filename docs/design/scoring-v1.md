@@ -13,7 +13,6 @@ Code: `scripts/photo/photo_scoring.gd`. Constants: `resources/scoring/default_sc
 | **Focus** | `1 − smoothstep(0.5·c, 3·c, blur)` on the subject's key point (the head), using thin-lens blur with `c = 0.03 mm`. |
 | **Exposure** | `EV_set = log2(N²/t) − log2(ISO/100)`, `error = EV_set − EV_scene`, score `1 − smoothstep(0.5, 2.5, |error|)`. Positive error means too dark. |
 | **Placement** ("Framing") | Distance `d` from the subject's key point to the nearest rule-of-thirds intersection or the center, in normalized screen units. Score `1 − smoothstep(0.05, 0.22, d)`: full marks inside the 0.05 zone (drawn in the viewfinder), 0 near the edges, and **0 if the key point is off screen**. |
-
 | **Motion** | `1 − smoothstep(tol, 3·tol, smear)` with `tol = 0.1 mm`. `smear` is the motion blur on the sensor (below). |
 | **Noise** | `stops = log2(ISO/100)`, score `1 − smoothstep(2, 6, stops)`. ISO 400 or lower scores 1, ISO 1600 scores 0.5, and ISO 6400 scores 0. |
 

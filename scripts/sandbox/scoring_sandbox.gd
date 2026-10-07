@@ -1,8 +1,8 @@
 class_name ScoringSandbox
 extends Node3D
-## Scratchpad scene for scoring v0, played as a tiny Burst-style round:
+## Scratchpad scene for scoring v1, played as a tiny Burst-style round:
 ## get a `target_stars` shot of the wanderer within `shots_per_round` shots.
-## See docs/design/scoring-v0.md.
+## See docs/design/scoring-v1.md.
 
 enum RoundState { PLAYING, WON, LOST }
 

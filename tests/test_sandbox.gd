@@ -42,6 +42,7 @@ func _run() -> void:
 	await _settle()
 	var hidden := camera.capture(subject)
 	_check("pillar blocks the subject (visibility %.2f)" % hidden.visibility, hidden.visibility < 0.34)
+	await _test_velocity(camera, subject)
 
 	var music: AudioStreamPlayer = scene.get_node("Music")
 	_check("background music autoplays and loops", music.autoplay and music.stream is AudioStreamMP3 and music.stream.loop)
@@ -245,6 +246,32 @@ func _test_dials(scene: ScoringSandbox, camera: PhotoCamera) -> void:
 	_press("dial_3")
 	_check("3 jumps back to aperture", camera.selected == PhotoCamera.Setting.APERTURE)
 	_check("shutter ticks read like a camera dial", camera.setting_labels(PhotoCamera.Setting.SHUTTER)[4] == "250")
+
+
+## Subjects measure their own speed, and the camera keeps only the part across the frame.
+func _test_velocity(camera: PhotoCamera, subject: PhotoSubject) -> void:
+	var start := subject.global_position
+	await _settle()
+	_check("a still subject reports no speed", subject.global_velocity.length() < 0.01)
+
+	var dt := 1.0 / Engine.physics_ticks_per_second
+	var step := Vector3(4.0, 0.0, 0.0) * dt  # 4 m/s sideways
+	for i in 4:
+		subject.global_position += step
+		await physics_frame
+	var speed := subject.global_velocity.length()
+	_check("a moving subject reports its speed (%.2f m/s)" % speed, absf(speed - 4.0) <= 0.2)
+
+	var forward := -camera.global_basis.z.normalized()
+	_check("speed across the frame ignores motion toward the camera", camera.cross_frame_speed(forward * 5.0) < 0.01)
+	var side := camera.global_basis.x.normalized() * 3.0
+	_check("speed across the frame counts sideways motion", is_equal_approx(camera.cross_frame_speed(side + forward * 2.0), 3.0))
+	_check("capture fills in the subject's speed", camera.capture(subject).subject_speed_mps > 0.0)
+
+	subject.global_position = start
+	await _settle()
+
+	_check("ISO dial reaches 12800", PhotoCamera.ISOS[-1] >= 12800.0 and PhotoCamera.SHUTTERS[-1] <= 1.0 / 4000.0)
 
 
 func _test_sfx() -> void:

@@ -20,7 +20,7 @@ const SETTING_NAMES := ["ISO", "SHUTTER", "APERTURE", "ZOOM", "FOCUS"]
 
 const APERTURES := [1.4, 2.0, 2.8, 4.0, 5.6, 8.0, 11.0, 16.0, 22.0]
 const SHUTTERS := [1.0 / 15.0, 1.0 / 30.0, 1.0 / 60.0, 1.0 / 125.0, 1.0 / 250.0, 1.0 / 500.0, 1.0 / 1000.0, 1.0 / 2000.0, 1.0 / 4000.0]
-const ISOS := [100.0, 200.0, 400.0, 800.0, 1600.0, 3200.0]
+const ISOS := [100.0, 200.0, 400.0, 800.0, 1600.0, 3200.0, 6400.0, 12800.0]
 const FOCAL_LENGTHS := [18.0, 24.0, 35.0, 50.0, 85.0, 135.0, 200.0]
 ## Distance marks printed on the focus ring, in meters (the last one reads as infinity).
 const FOCUS_MARKS := [0.3, 0.5, 0.7, 1.0, 1.5, 2.0, 3.0, 5.0, 7.0, 10.0, 15.0, 30.0, 200.0]
@@ -281,7 +281,15 @@ func capture(subject: PhotoSubject) -> ShotData:
 	shot.subject_distance_m = maxf(view_depth(key), 0.01)
 	shot.subject_screen_pos = unproject_position(key) / get_viewport().get_visible_rect().size
 	shot.visibility = visibility_of(subject)
+	shot.subject_speed_mps = cross_frame_speed(subject.global_velocity)
 	return shot
+
+
+## Speed of a world-space velocity across the frame, ignoring motion along the
+## view axis. (Panning with the subject would subtract the camera's own motion here.)
+func cross_frame_speed(velocity: Vector3) -> float:
+	var forward := -global_basis.z.normalized()
+	return (velocity - forward * velocity.dot(forward)).length()
 
 
 ## Fraction of the subject's sample points that are in frame and not blocked.

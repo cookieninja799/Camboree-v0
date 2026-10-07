@@ -1,12 +1,17 @@
 class_name ScoringConfig
 extends Resource
-## Every tunable number in scoring v0. Edit the .tres in the inspector rather
-## than changing code. See docs/design/scoring-v0.md.
+## Every tunable number in scoring v1. Edit the .tres in the inspector rather
+## than changing code. Each brief can carry its own config, so the weights say
+## what that client cares about. See docs/design/scoring-v1.md.
 
 @export_group("Weights")
 @export var focus_weight := 0.5
 @export var exposure_weight := 0.3
 @export var placement_weight := 0.2
+## 0 leaves motion out entirely: not scored, no bar, no tip.
+@export var motion_weight := 0.0
+## 0 leaves noise out entirely: not scored, no bar, no tip.
+@export var noise_weight := 0.0
 
 @export_group("Focus")
 ## Circle of confusion in mm. 0.03 is the full-frame convention.
@@ -37,7 +42,28 @@ extends Resource
 	Vector2(0.5, 0.5),
 ])
 
+@export_group("Motion")
+## Motion blur on the sensor (mm) up to this scores 1; at 3x this it scores 0.
+@export var motion_tol_mm := 0.1
+
+@export_group("Noise")
+## Stops above ISO 100 that still score 1 (2 stops = ISO 400).
+@export var noise_ok_stops := 2.0
+## Stops above ISO 100 that score 0 (6 stops = ISO 6400).
+@export var noise_bad_stops := 6.0
+
 @export_group("Stars")
 ## One star is earned per threshold reached. Array[float] (64-bit), not
 ## PackedFloat32Array, so a score of exactly 0.2 reaches the 0.2 threshold.
 @export var star_thresholds: Array[float] = [0.2, 0.4, 0.6, 0.8, 0.9]
+
+
+## Weight of a pillar by result key ("focus", "motion", ...). The gate isn't weighted.
+func weight(pillar: String) -> float:
+	match pillar:
+		"focus": return focus_weight
+		"exposure": return exposure_weight
+		"placement": return placement_weight
+		"motion": return motion_weight
+		"noise": return noise_weight
+	return 0.0

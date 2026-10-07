@@ -1,5 +1,5 @@
 extends SceneTree
-## Headless checks for scoring v0. Run from the project root:
+## Headless checks for scoring v1. Run from the project root:
 ##   godot --headless --import --path .
 ##   godot --headless --path . -s res://tests/test_scoring.gd
 
@@ -14,6 +14,9 @@ func _initialize() -> void:
 	_test_exposure()
 	_test_placement()
 	_test_stars()
+	_test_motion()
+	_test_noise()
+	_test_weights()
 	_test_full_shot()
 	_test_coach()
 	_test_focus_motor()
@@ -67,7 +70,53 @@ func _test_stars() -> void:
 	_check("0.9 is 5 stars", PhotoScoring.stars(0.9, _cfg) == 5)
 
 
-func _test_full_shot() -> void:
+func _test_motion() -> void:
+	# A 5 m/s runner at 10 m with an 85 mm lens (docs/design/scoring-v1.md).
+	var slow := PhotoScoring.motion_blur_mm(85.0, 10.0, 5.0, 1.0 / 125.0)
+	_near("motion blur at 1/125", slow, 0.3429, 0.0005)
+	_near("motion at 1/125", PhotoScoring.motion_score(slow, _cfg), 0.0, 1e-6)
+	var mid := PhotoScoring.motion_blur_mm(85.0, 10.0, 5.0, 1.0 / 250.0)
+	_near("motion blur at 1/250", mid, 0.1715, 0.0005)
+	_near("motion at 1/250", PhotoScoring.motion_score(mid, _cfg), 0.71, 0.01)
+	var fast := PhotoScoring.motion_blur_mm(85.0, 10.0, 5.0, 1.0 / 500.0)
+	_near("motion blur at 1/500", fast, 0.0857, 0.0005)
+	_near("motion at 1/500", PhotoScoring.motion_score(fast, _cfg), 1.0, 1e-6)
+	_near("a still subject doesn't smear", PhotoScoring.motion_blur_mm(200.0, 5.0, 0.0, 1.0), 0.0, 1e-9)
+	_check("1/500 freezes the runner", PhotoScoring.dial_shutter_at_most(PhotoScoring.freeze_shutter_s(85.0, 10.0, 5.0, _cfg)) == 1.0 / 500.0)
+
+
+func _test_noise() -> void:
+	_near("noise at ISO 100", PhotoScoring.noise_score(100.0, _cfg), 1.0, 1e-6)
+	_near("noise at ISO 400", PhotoScoring.noise_score(400.0, _cfg), 1.0, 1e-6)
+	_near("noise at ISO 1600", PhotoScoring.noise_score(1600.0, _cfg), 0.5, 1e-4)
+	_near("noise at ISO 6400", PhotoScoring.noise_score(6400.0, _cfg), 0.0, 1e-6)
+
+
+func _test_weights() -> void:
+	var shot := _reference_shot()
+	shot.subject_speed_mps = 5.0
+	shot.shutter_s = 1.0 / 30.0
+	shot.iso = 6400.0
+	shot.scene_ev = PhotoScoring.exposure_value(shot.aperture_n, shot.shutter_s, shot.iso)
+	var unweighted := PhotoScoring.score(shot, _cfg)
+	_check("motion and noise are reported even when unweighted", unweighted.motion == 0.0 and unweighted.noise == 0.0)
+	_near("unweighted motion and noise don't cost anything", unweighted.score, 1.0, 1e-4)
+	_check("unweighted pillars are never the worst", unweighted.worst != "motion" and unweighted.worst != "noise")
+
+	var cfg := ScoringConfig.new()
+	cfg.motion_weight = 0.5
+	var weighted := PhotoScoring.score(shot, cfg)
+	_near("weights are normalized (motion 0.5 of 1.5)", weighted.score, 1.0 / 1.5, 1e-4)
+	_check("smeared shot's worst pillar is motion", weighted.worst == "motion")
+	_check("motion tip names a dial shutter", weighted.tip.begins_with("Subject is moving") and "1/1000 or faster" in weighted.tip)
+
+	cfg.motion_weight = 0.0
+	cfg.noise_weight = 1.0
+	var grainy := PhotoScoring.score(shot, cfg)
+	_check("grainy shot's worst pillar is noise", grainy.worst == "noise" and grainy.tip.begins_with("Grainy at ISO 6400"))
+
+
+func _reference_shot() -> ShotData:
 	var shot := ShotData.new()
 	shot.aperture_n = 5.6
 	shot.shutter_s = 1.0 / 250.0
@@ -76,6 +125,11 @@ func _test_full_shot() -> void:
 	shot.focus_distance_m = 4.0
 	shot.subject_distance_m = 4.0
 	shot.subject_screen_pos = Vector2(1.0 / 3.0, 2.0 / 3.0)
+	return shot
+
+
+func _test_full_shot() -> void:
+	var shot := _reference_shot()
 
 	var perfect := PhotoScoring.score(shot, _cfg)
 	_near("perfect shot score", perfect.score, 1.0, 1e-4)

@@ -15,5 +15,8 @@ extends Resource
 @export var subject_screen_pos := Vector2(0.5, 0.5)
 ## Fraction of the subject's sample points that are in frame and unobstructed.
 @export_range(0.0, 1.0) var visibility := 1.0
+## Subject speed across the frame in m/s: its velocity with the part along the
+## view axis removed (moving toward or away from the camera doesn't smear it).
+@export var subject_speed_mps := 0.0
 ## Correct exposure value for the scene at ISO 100.
 @export var scene_ev := 13.0

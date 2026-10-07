@@ -10,16 +10,28 @@ const GROUP := &"photo_subject"
 @export var wander_range := 3.0
 @export var wander_speed := 0.6
 
+## World-space velocity in m/s, measured from how far the subject moved last
+## physics frame. CharacterBody3D.velocity stays zero because the wander sets
+## global_position directly.
+var global_velocity := Vector3.ZERO
+
 var _origin: Vector3
 var _time := 0.0
+var _last_position: Vector3
 
 
 func _ready() -> void:
 	add_to_group(GROUP)
 	_origin = global_position
+	_last_position = global_position
 
 
 func _physics_process(delta: float) -> void:
+	# Measure before moving: this frame's step only shows up on the next frame,
+	# and anything else that moved us (tests, other scripts) counts too.
+	if delta > 0.0:
+		global_velocity = (global_position - _last_position) / delta
+	_last_position = global_position
 	if wander_range <= 0.0:
 		return
 	_time += delta * wander_speed

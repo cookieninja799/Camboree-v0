@@ -1,6 +1,6 @@
 # Camboree: Game Design Document (working draft)
 
-> Living document. "Open question" marks things that aren't decided yet. Scoring details are in [`scoring-v0.md`](scoring-v0.md).
+> Living document. "Open question" marks things that aren't decided yet. Scoring details are in [`scoring-v1.md`](scoring-v1.md).
 
 ## Pitch
 

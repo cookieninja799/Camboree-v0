@@ -95,7 +95,7 @@ func _draw() -> void:
 			var color := Color(accent, alpha) if i == index else rim
 			draw_line(center + dir * (radius - 14.0), center + dir * radius, color, 2.0, true)
 			draw_set_transform(center + dir * (radius - 30.0), angle + PI / 2.0)
-			_draw_centered(font, labels[i], Vector2.ZERO, 15 if i == index else 13, color)
+			_draw_centered(font, labels[i], Vector2.ZERO, 13 if i == index else 11, color)
 			draw_set_transform(Vector2.ZERO)
 		var minor := angle + STEP * 0.5
 		if i < labels.size() - 1 and absf(minor + PI / 2.0) <= VISIBLE_HALF_ANGLE:

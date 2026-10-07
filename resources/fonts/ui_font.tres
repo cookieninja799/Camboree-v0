@@ -1,0 +1,10 @@
+[gd_resource type="FontVariation" load_steps=3 format=3]
+
+[ext_resource type="FontFile" path="res://assets/fonts/FontV1-Regular.ttf" id="1_fontv1"]
+
+[sub_resource type="SystemFont" id="SystemFont_fallback"]
+font_names = PackedStringArray("Sans-Serif")
+
+[resource]
+fallbacks = Array[Font]([SubResource("SystemFont_fallback")])
+base_font = ExtResource("1_fontv1")

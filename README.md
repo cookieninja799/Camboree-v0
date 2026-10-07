@@ -6,6 +6,7 @@ A cozy, silly, low-poly photography RPG for 1–4 players. Think Stardew Valley 
 - Photo scoring spec: [`docs/design/scoring-v0.md`](docs/design/scoring-v0.md)
 - Audio manifest (every music track and sound effect): [`docs/audio-manifest.md`](docs/audio-manifest.md)
 - UI manifest (fonts, icon, every HUD element and color): [`docs/ui-manifest.md`](docs/ui-manifest.md)
+- Art to replace (code-drawn placeholders, with screenshots): [`docs/art-replacement.md`](docs/art-replacement.md)
 
 ## Getting started
 

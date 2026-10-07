@@ -54,6 +54,8 @@ All text uses Font V1.
 
 ## Wishlist (to make or replace)
 
+See [`art-replacement.md`](art-replacement.md) for every placeholder, with screenshots and priorities.
+
 - Add the missing glyphs to Font V1 (at least `/ % + · —`) so nothing falls back to the system font.
 - Draw real art for the dials (the camera's dial faces), the polaroid frame, the stars, and the focus bracket.
 - A real app icon.

@@ -194,9 +194,17 @@ func _test_round(scene: ScoringSandbox) -> void:
 
 	scene._on_shot_taken(_perfect_shot())
 	_check("a 5-star shot wins brief 1", runner.state == RoundRunner.State.WON)
+	_check("the winning shot drops a polaroid", hud.is_polaroid_visible() and hud.is_result_visible())
+	_check("the winning polaroid is stamped", hud.polaroid_stamp() == "BRIEF COMPLETE")
+	scene._on_shot_taken(_perfect_shot())
+	_check("a shot during the reveal doesn't skip it", runner.state == RoundRunner.State.WON and runner.index == 0)
+	await create_timer(Sfx.reveal_time(5) + 0.6).timeout
+	_check("stars fill in on the polaroid", hud.polaroid_stars() == 5)
 	scene._on_shot_taken(_perfect_shot())
 	var sun: DirectionalLight3D = scene.get_node("Sun")
 	_check("the next shot moves on to the dusk brief", runner.index == 1 and runner.state == RoundRunner.State.PLAYING and runner.shots_left == 6)
+	_check("moving on keeps the last polaroid up", hud.is_polaroid_visible() and hud.polaroid_stars() == 5)
+	_check("the dusk brief is coached too", scene.coach_active())
 	_check("dusk dims the light and darkens the scene", camera.scene_ev == 2.0 and sun.light_energy < 0.5 and camera.render_gain > 1.0)
 	_check("dusk grades noise and shows its bar", scene.config.noise_weight > 0.0 and hud.has_bar("noise") and hud.has_bar("motion"))
 	_check("the dusk card shows its requirement", hud.is_card_visible() and "Dusk Portrait" in hud.card_text() and "Noise 0.5+" in hud.card_text())
@@ -206,16 +214,27 @@ func _test_round(scene: ScoringSandbox) -> void:
 	grainy.scene_ev = PhotoScoring.exposure_value(grainy.aperture_n, grainy.shutter_s, grainy.iso)
 	scene._on_shot_taken(grainy)
 	_check("a shot that breaks a required rule doesn't count", runner.state == RoundRunner.State.PLAYING and runner.best_stars == 0 and runner.shots_left == 5)
+	_check("a shot that doesn't count still shows its polaroid, marked", hud.is_polaroid_visible() and hud.polaroid_stamp() == "DOESN'T COUNT")
+	await create_timer(Sfx.reveal_time(5) + 0.3).timeout
+	# Noise 0 costs 0.1 of the dusk score, so this lands right on the 5-star line.
+	_check("dusk polaroid shows its stars (%d) and why it didn't count" % hud.polaroid_stars(), hud.polaroid_stars() >= 4 and "Doesn't count" in scene.get_node("HUD/Overlay/Result/TipLabel").text)
 	scene._on_shot_taken(_perfect_shot())
 	_check("a clean 5-star shot wins dusk", runner.state == RoundRunner.State.WON)
+	_check("the dusk win drops a stamped polaroid", hud.is_polaroid_visible() and hud.polaroid_stamp() == "BRIEF COMPLETE")
+	await create_timer(Sfx.reveal_time(5) + 0.6).timeout
+	_check("dusk win shows all its stars", hud.polaroid_stars() == 5)
 
 	scene._on_shot_taken(_perfect_shot())
 	_check("then the bird brief: a flyer, best of 8", runner.index == 2 and subject.behavior == PhotoSubject.Behavior.FLYER and runner.brief().win_mode == Brief.WinMode.BEST_OF)
+	_check("the bird brief is coached too", scene.coach_active())
 	scene._on_shot_taken(_perfect_shot())
 	_check("best-of keeps going after a great shot", runner.state == RoundRunner.State.PLAYING and runner.shots_left == 7)
+	_check("a mid-roll shot has a plain polaroid", hud.is_polaroid_visible() and hud.polaroid_stamp() == "")
 	for i in 7:
 		scene._on_shot_taken(_perfect_shot())
 	_check("best-of wins once the roll is used, with the frozen-motion bonus", runner.state == RoundRunner.State.WON and runner.bonus_met)
+	_check("the bird win is stamped with its bonus", hud.polaroid_stamp() == "BRIEF COMPLETE +BONUS")
+	await create_timer(Sfx.reveal_time(5) + 0.6).timeout
 
 	scene._on_shot_taken(_perfect_shot())
 	_check("after the last brief: the summary", runner.state == RoundRunner.State.DONE and hud.is_card_visible() and "Total: 550" in hud.card_text())

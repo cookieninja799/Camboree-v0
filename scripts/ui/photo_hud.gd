@@ -40,6 +40,7 @@ var _card: PanelContainer
 var _card_title: Label
 var _card_body: Label
 var _card_sticky := false
+var _stamp: Label
 
 @onready var _settings_label: Label = $SettingsLabel
 @onready var _dial_row: HBoxContainer = $Dials
@@ -60,6 +61,7 @@ func _ready() -> void:
 	resized.connect(_update_dial_pivot)
 	_build_bars()
 	_build_card()
+	_build_stamp()
 	clear_result()
 	_nudge_label.modulate.a = 0.0
 
@@ -288,9 +290,28 @@ func clear_result() -> void:
 	_polaroid.visible = false
 
 
+func is_result_visible() -> bool:
+	return _result.visible
+
+
+func is_polaroid_visible() -> bool:
+	return _polaroid.visible
+
+
+## Stars filled in on the polaroid so far.
+func polaroid_stars() -> int:
+	return _stars.filled
+
+
+## The stamp across the polaroid ("BRIEF COMPLETE", "DOESN'T COUNT"), or "".
+func polaroid_stamp() -> String:
+	return _stamp.text if _stamp.visible else ""
+
+
 ## Grabs the frame, drops it in as a polaroid, then reveals stars, bars, and tip
-## on the same beat as Sfx.play_result().
-func present_shot(result: Dictionary) -> void:
+## on the same beat as Sfx.play_result(). `stamp` is printed across the photo
+## once the stars are in: what this shot meant for the brief.
+func present_shot(result: Dictionary, stamp := "") -> void:
 	_shot_id += 1
 	var id := _shot_id
 	var photo := await _grab_frame()
@@ -300,6 +321,7 @@ func present_shot(result: Dictionary) -> void:
 	create_tween().tween_property(_flash, "modulate:a", 0.0, 0.25)
 	_drop_polaroid(photo)
 	_reveal_result(result)
+	_show_stamp(stamp, result.stars)
 
 
 ## The current frame without the HUD on it, downscaled. Null if there's no
@@ -351,6 +373,56 @@ func _reveal_result(result: Dictionary) -> void:
 	for i in stars:
 		_reveal.tween_callback(_stars.add_star).set_delay(Sfx.star_time(i))
 	_reveal.tween_property(_tip_label, "modulate:a", 1.0, 0.2).set_delay(Sfx.reveal_time(stars))
+
+
+## A rubber-stamp label over the photo. It lives inside the polaroid so it
+## comes and goes with it.
+func _build_stamp() -> void:
+	_stamp = Label.new()
+	_stamp.name = "Stamp"
+	_stamp.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_stamp.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	_stamp.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	_stamp.grow_vertical = Control.GROW_DIRECTION_BOTH
+	_stamp.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_stamp.add_theme_font_size_override("font_size", 30)
+	_stamp.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.6))
+	_stamp.add_theme_constant_override("outline_size", 8)
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0, 0, 0, 0.0)
+	style.border_width_left = 3
+	style.border_width_right = 3
+	style.border_width_top = 3
+	style.border_width_bottom = 3
+	style.set_corner_radius_all(4)
+	style.set_content_margin_all(8)
+	_stamp.add_theme_stylebox_override("normal", style)
+	_photo.add_child(_stamp)
+	_stamp.visible = false
+
+
+## Stamps the polaroid once its stars have popped in, with a little slam.
+func _show_stamp(text: String, stars: int) -> void:
+	_stamp.visible = false
+	if text == "":
+		return
+	var good := text.begins_with("BRIEF COMPLETE")
+	var color := GOOD if good else BAD
+	_stamp.text = text
+	_stamp.add_theme_color_override("font_color", color)
+	(_stamp.get_theme_stylebox("normal") as StyleBoxFlat).border_color = color
+	_stamp.rotation_degrees = randf_range(-12.0, -6.0) if good else randf_range(6.0, 12.0)
+	_stamp.modulate.a = 0.0
+	_stamp.visible = true
+	# The stamp slams down just after the stars so the reveal keeps its rhythm;
+	# the stamp text answers "did that shot do it?" before the tip explains why.
+	_stamp.reset_size()
+	_stamp.pivot_offset = _stamp.size * 0.5
+	_stamp.scale = Vector2(2.0, 2.0)
+	var tween := create_tween().set_parallel()
+	tween.tween_property(_stamp, "modulate:a", 0.9, 0.12).set_delay(Sfx.reveal_time(stars))
+	tween.tween_property(_stamp, "scale", Vector2.ONE, 0.18).set_delay(Sfx.reveal_time(stars)) \
+		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 
 func _build_bars() -> void:

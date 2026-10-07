@@ -277,7 +277,21 @@ func _test_coach() -> void:
 	fast.scene_ev = PhotoScoring.exposure_value(fast.aperture_n, fast.shutter_s, fast.iso)
 	var frozen := PhotoCoach.advice(PhotoScoring.score(fast, bird), fast, PhotoCamera.Setting.SHUTTER, true, true, bird)
 	_check("motion and noise lines go green once fixed", frozen[3].ok and frozen[4].ok)
-	_check("coach asks to find the subject", PhotoCoach.advice(PhotoScoring.score(shot, _cfg), shot, PhotoCamera.Setting.ISO, false)[0].text.begins_with("Find"))
+	_check("coach asks to find the subject", PhotoCoach.advice(PhotoScoring.score(shot, _cfg), shot, PhotoCamera.Setting.ISO, false)[0].text.begins_with("Find the wanderer"))
+
+	# Other briefs name their own subject, and a flyer out of sight is something to wait for.
+	var away := PhotoCoach.advice(PhotoScoring.score(fast, bird), fast, PhotoCamera.Setting.ISO, false, true, bird, "the bird", true)
+	_check("coach says to wait for a flyer", away[0].text.begins_with("Wait for the bird") and away[1].pillar == "exposure")
+	var model := ShotData.new()
+	model.scene_ev = PhotoScoring.exposure_value(model.aperture_n, model.shutter_s, model.iso)
+	model.focus_distance_m = 0.5
+	model.subject_distance_m = 4.0
+	model.subject_screen_pos = Vector2(0.1, 0.1)
+	model.visibility = 0.5
+	var named := PhotoCoach.advice(PhotoScoring.score(model, _cfg), model, PhotoCamera.Setting.ISO, true, true, _cfg, "the model")
+	_check("coach names the brief's subject in focus, framing, and in-view lines",
+		"the model is 4.0 m away" in named[1].text and "the model's head" in named[2].text and "part of the model" in named[3].text)
+	_check("coach wording defaults to the wanderer", "the wanderer is" in PhotoCoach.focus_hint(model))
 
 
 func _test_focus_motor() -> void:

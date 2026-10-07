@@ -22,4 +22,6 @@ config = ExtResource("2_cfg")
 requirements = Array[ExtResource("3_req")]([SubResource("Requirement_motion")])
 reward = 200
 bonus_reward = 100
+coach = true
+subject_name = "the bird"
 subject_behavior = 2

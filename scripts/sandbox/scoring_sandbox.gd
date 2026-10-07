@@ -23,6 +23,9 @@ var runner: RoundRunner
 ## The current brief's grading.
 var config: ScoringConfig
 var grain: GrainOverlay
+## Shots fired before this (ms) can't move past a finished brief, so a quick
+## second press can't skip the reveal of the shot that finished it.
+var _reveal_until_ms := 0
 
 @onready var _player: Player = $Player
 @onready var _camera: PhotoCamera = $Player/Head/PhotoCamera
@@ -62,7 +65,9 @@ func _process(_delta: float) -> void:
 	if coach_active():
 		# Score what the camera would capture right now, without taking the shot.
 		var shot := _camera.capture(subject)
-		var lines := PhotoCoach.advice(PhotoScoring.score(shot, config), shot, _camera.selected, subject != null, _player.is_viewfinder(), config)
+		var brief := runner.brief()
+		var lines := PhotoCoach.advice(PhotoScoring.score(shot, config), shot, _camera.selected, subject != null,
+			_player.is_viewfinder(), config, brief.subject_name, brief.subject_behavior == PhotoSubject.Behavior.FLYER)
 		_hud.show_coach(lines)
 
 
@@ -87,7 +92,8 @@ func _on_brief_started(brief: Brief) -> void:
 	grain.set_iso(_camera.iso, config)
 	if brief.scramble and scramble_on_start and runner.attempt == 1:
 		_camera.scramble()
-	_hud.clear_result()
+	# The last shot's polaroid stays up (the player just saw it win or lose the
+	# brief); the first shot of this brief replaces it.
 	_hud.hide_coach()
 	if runner.attempt == 1:
 		_hud.show_card(_card_title(brief), _card_body(brief))
@@ -108,26 +114,34 @@ func _apply_light(brief: Brief) -> void:
 
 func _on_shot_taken(shot: ShotData) -> void:
 	if runner.state != RoundRunner.State.PLAYING:
+		if Time.get_ticks_msec() < _reveal_until_ms:
+			return  # still revealing the shot that ended the brief
 		runner.advance()  # any shot after a brief ends moves on
 		if runner.state == RoundRunner.State.DONE:
 			_show_summary()
 		return
 	var brief := runner.brief()
 	var result := PhotoScoring.score(shot, config)
+	var stamp := ""
 	if not runner.record(result):
 		var missed: Array[String] = []
 		for requirement in brief.requirements:
 			if requirement.required and not requirement.evaluate(result):
 				missed.append(requirement.describe())
 		result.tip = "Doesn't count: %s. %s" % [", ".join(missed), result.tip]
+		stamp = "DOESN'T COUNT"
+	if runner.state == RoundRunner.State.WON:
+		stamp = "BRIEF COMPLETE" + (" +BONUS" if runner.bonus_met else "")
 
 	if not coach_active():
 		_hud.hide_coach()
 	_hud.hide_card()
 	Sfx.play_result(self, result.stars)
-	_hud.present_shot(result)
+	_hud.present_shot(result, stamp)
 	# Update the brief once the stars have finished popping, so it doesn't spoil them.
-	get_tree().create_timer(Sfx.reveal_time(result.stars)).timeout.connect(_show_brief)
+	var reveal_s := Sfx.reveal_time(result.stars)
+	_reveal_until_ms = Time.get_ticks_msec() + int(reveal_s * 1000.0) + 300
+	get_tree().create_timer(reveal_s).timeout.connect(_show_brief)
 	print("Shot: %.2f (%d stars) focus=%.2f exposure=%.2f placement=%.2f motion=%.2f noise=%.2f gate=%.2f blur=%.3fmm smear=%.3fmm ev_err=%+.2f | %s" % [
 		result.score, result.stars, result.focus, result.exposure, result.placement, result.motion, result.noise,
 		result.gate, result.blur_mm, result.motion_blur_mm, result.ev_error, result.tip,

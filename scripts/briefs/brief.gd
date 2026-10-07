@@ -37,6 +37,8 @@ enum WinMode { TARGET_STARS, BEST_OF }
 @export var render_gain := 1.0
 
 @export_group("Subject")
+## How the coach refers to the subject ("the wanderer", "the bird").
+@export var subject_name := "the wanderer"
 @export var subject_behavior := PhotoSubject.Behavior.WANDER
 @export var wander_range := 3.0
 @export var wander_speed := 0.6

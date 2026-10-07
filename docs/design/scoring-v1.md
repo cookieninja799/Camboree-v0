@@ -59,11 +59,13 @@ A 5 m/s runner at 10 m with an 85 mm lens:
 
 A `Brief` (`scripts/briefs/brief.gd`, `.tres` files in `resources/briefs/`) holds the client's ask, a `ScoringConfig` with that client's weights, the goal (`target_stars` within `shot_limit`, or best of N with `win_mode = BEST_OF`), `BriefRequirement`s, the reward, and the scene (scene EV, sun, sky, `render_gain`, and subject behavior). A required requirement decides whether a shot counts at all. Optional ones earn the bonus. `RoundRunner` plays the briefs in order: brief card → shoot → result → next brief. A loss retries the same brief, and the last win shows a summary.
 
+Every brief shows the live "fix your camera" coach on its first attempt (`coach = true`, with `ScoringSandbox.coach_rounds` deciding how many attempts), phrased with the brief's `subject_name`. When a flyer is out of sight the coach says to wait for it rather than look for it. Only R1 scrambles the settings. The polaroid is stamped with what the shot meant for the brief: `BRIEF COMPLETE` (plus `+BONUS`), or `DOESN'T COUNT` when a required requirement failed. The shot that moves on to the next brief leaves the last polaroid up, and shots fired while a brief-ending shot is still revealing are ignored, so the result can't be skipped by accident.
+
 | Brief | Goal | Weights F/E/P/M/N | Requirement | Scene |
 |---|---|---|---|---|
-| R1 The Wanderer | 4★ in 5 | 0.5 / 0.3 / 0.2 / 0 / 0 | – | EV 13, sine wanderer (coach, scrambled settings) |
-| R2 Dusk Portrait | 4★ in 6 | 0.3 / 0.25 / 0.15 / 0.2 / 0.1 | Noise ≥ 0.5 (ISO ≤ 1600), required | EV 2, slow sway (0.4 m/s peak) |
-| R3 Bird in Flight | best of 8 ≥ 3★ | 0.3 / 0.2 / 0.1 / 0.4 / 0 | Motion ≥ 0.8, bonus | EV 13, flyer: 8–12 m/s passes 4–8 m up, 2–5 s gaps |
+| R1 The Wanderer | 4★ in 5 | 0.5 / 0.3 / 0.2 / 0 / 0 | – | EV 13, sine wanderer (scrambled settings) |
+| R2 Dusk Portrait | 4★ in 6 | 0.3 / 0.25 / 0.15 / 0.2 / 0.1 | Noise ≥ 0.5 (ISO ≤ 1600), required | EV 2, slow sway (0.4 m/s peak), "the model" |
+| R3 Bird in Flight | best of 8 ≥ 3★ | 0.3 / 0.2 / 0.1 / 0.4 / 0 | Motion ≥ 0.8, bonus | EV 13, flyer: 8–12 m/s passes 4–8 m up, 2–5 s gaps, "the bird" |
 
 Tuning checks in `tests/test_scoring.gd`:
 - **Dusk:** sweeping every setting at 50/85/135 mm (subject at 4 m, swaying 0.4 m/s, focus 0.15 m off), ISO ≤ 400 tops out at 0.776 (3★). 5★ (0.926) needs about ISO 1600, so the player has to accept some grain.

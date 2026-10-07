@@ -12,24 +12,27 @@ const GOOD := 0.8
 ## `subject_found` is false when no subject is in view at all. `raised` is false
 ## while the player is exploring with the camera lowered: then the coach asks them
 ## to raise it, but exposure can already be fixed ahead of time. With a `cfg`,
-## motion and noise get lines too when the config weighs them.
-static func advice(result: Dictionary, shot: ShotData, selected: PhotoCamera.Setting, subject_found: bool, raised := true, cfg: ScoringConfig = null) -> Array[Dictionary]:
+## motion and noise get lines too when the config weighs them. `subject` is
+## how the brief names its subject, and `flyer` means it comes and goes, so
+## when it's out of sight the coach says to wait rather than to look for it.
+static func advice(result: Dictionary, shot: ShotData, selected: PhotoCamera.Setting, subject_found: bool, raised := true, cfg: ScoringConfig = null, subject := "the wanderer", flyer := false) -> Array[Dictionary]:
 	var lines: Array[Dictionary] = []
 	if not raised:
 		lines.append(_line("raise", false, "Raise your camera: hold RMB (LT)"))
 		lines.append(_line("exposure", result.exposure >= GOOD, "Exposure" if result.exposure >= GOOD else exposure_hint(result.ev_error, selected)))
 		return lines
 	if not subject_found:
-		lines.append(_line("gate", false, "Find the wanderer (the orange capsule)"))
+		var find := "Wait for %s, it flies past every few seconds" % subject if flyer else "Find %s (the orange capsule)" % subject
+		lines.append(_line("gate", false, find))
 		lines.append(_line("exposure", result.exposure >= GOOD, "Exposure" if result.exposure >= GOOD else exposure_hint(result.ev_error, selected)))
 		return lines
 
 	lines.append(_line("exposure", result.exposure >= GOOD,
 		"Exposure" if result.exposure >= GOOD else exposure_hint(result.ev_error, selected)))
 	lines.append(_line("focus", result.focus >= GOOD,
-		"Focus" if result.focus >= GOOD else focus_hint(shot)))
+		"Focus" if result.focus >= GOOD else focus_hint(shot, subject)))
 	lines.append(_line("placement", result.placement >= GOOD,
-		"Framing" if result.placement >= GOOD else "Framing: put the wanderer's head inside one of the circles"))
+		"Framing" if result.placement >= GOOD else "Framing: put %s's head inside one of the circles" % subject))
 	if cfg and cfg.motion_weight > 0.0:
 		lines.append(_line("motion", result.motion >= GOOD,
 			"Motion" if result.motion >= GOOD else motion_hint(shot, selected, cfg)))
@@ -37,7 +40,7 @@ static func advice(result: Dictionary, shot: ShotData, selected: PhotoCamera.Set
 		lines.append(_line("noise", result.noise >= GOOD,
 			"Noise" if result.noise >= GOOD else noise_hint(shot, selected)))
 	lines.append(_line("gate", result.gate >= GOOD,
-		"In view" if result.gate >= GOOD else "In view: part of the wanderer is hidden or out of frame"))
+		"In view" if result.gate >= GOOD else "In view: part of %s is hidden or out of frame" % subject))
 	return lines
 
 
@@ -64,9 +67,9 @@ static func exposure_hint(ev_error: float, selected: PhotoCamera.Setting) -> Str
 	return problem + " · pick ISO (1), SHUTTER (2) or APERTURE (3)"
 
 
-static func focus_hint(shot: ShotData) -> String:
-	return "Focus: at %.1f m, but the wanderer is %.1f m away · press Shift to autofocus, or turn the FOCUS dial" % [
-		shot.focus_distance_m, shot.subject_distance_m,
+static func focus_hint(shot: ShotData, subject := "the wanderer") -> String:
+	return "Focus: at %.1f m, but %s is %.1f m away · press Shift to autofocus, or turn the FOCUS dial" % [
+		shot.focus_distance_m, subject, shot.subject_distance_m,
 	]
 
 

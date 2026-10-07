@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="Brief" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/briefs/brief.gd" id="1_brief"]
+[ext_resource type="Resource" path="res://resources/scoring/default_scoring_config.tres" id="2_cfg"]
+
+[resource]
+script = ExtResource("1_brief")
+title = "The Wanderer"
+ask = "Someone's pacing the plaza. Get me one sharp, well-exposed, well-framed shot of them."
+target_stars = 4
+shot_limit = 5
+config = ExtResource("2_cfg")
+reward = 100
+coach = true
+scramble = true

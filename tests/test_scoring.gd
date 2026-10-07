@@ -17,6 +17,9 @@ func _initialize() -> void:
 	_test_motion()
 	_test_noise()
 	_test_weights()
+	_test_bird_sweep()
+	_test_dusk_sweep()
+	_test_briefs()
 	_test_full_shot()
 	_test_coach()
 	_test_focus_motor()
@@ -116,6 +119,89 @@ func _test_weights() -> void:
 	_check("grainy shot's worst pillar is noise", grainy.worst == "noise" and grainy.tip.begins_with("Grainy at ISO 6400"))
 
 
+## Round 3: a bird crossing at 10 m/s, 15 m out, on the 200 mm lens.
+## Freezing it (motion >= 0.8) should need 1/1000 or faster.
+func _test_bird_sweep() -> void:
+	var cfg: ScoringConfig = load("res://resources/scoring/bird_scoring_config.tres")
+	var at := func(shutter: float) -> float:
+		return PhotoScoring.motion_score(PhotoScoring.motion_blur_mm(200.0, 15.0, 10.0, shutter), cfg)
+	_check("bird at 1/500 is smeared (%.2f)" % at.call(1.0 / 500.0), at.call(1.0 / 500.0) < 0.8)
+	_check("bird at 1/1000 is frozen (%.2f)" % at.call(1.0 / 1000.0), at.call(1.0 / 1000.0) >= 0.8)
+	var shot := _reference_shot()
+	shot.focal_length_mm = 200.0
+	shot.subject_distance_m = 15.0
+	shot.focus_distance_m = 15.0
+	shot.subject_speed_mps = 10.0
+	shot.shutter_s = 1.0 / 1000.0
+	shot.scene_ev = PhotoScoring.exposure_value(shot.aperture_n, shot.shutter_s, shot.iso)
+	_check("a frozen, framed bird is 5 stars", PhotoScoring.score(shot, cfg).stars == 5)
+	shot.shutter_s = 1.0 / 125.0
+	shot.scene_ev = PhotoScoring.exposure_value(shot.aperture_n, shot.shutter_s, shot.iso)
+	var smeared: Dictionary = PhotoScoring.score(shot, cfg)
+	_check("a smeared bird misses 4 stars (%d) and the tip says why" % smeared.stars, smeared.stars < 4 and smeared.worst == "motion")
+
+
+## Round 2: a portrait at dusk (scene EV 2), the subject swaying at 0.4 m/s,
+## 4 m out, with focus landing 0.15 m off. Sweeps every camera setting:
+## at ISO 400 or lower nothing beats 3 stars, but 5 stars is in reach by
+## accepting some grain or blur.
+func _test_dusk_sweep() -> void:
+	var cfg: ScoringConfig = load("res://resources/scoring/dusk_scoring_config.tres")
+	var best_low := 0.0
+	var best := {"score": 0.0}
+	var shot := _reference_shot()
+	shot.scene_ev = 2.0
+	shot.subject_distance_m = 4.0
+	shot.focus_distance_m = 4.15
+	shot.subject_speed_mps = 0.4
+	for focal in [50.0, 85.0, 135.0]:
+		for n in PhotoCamera.APERTURES:
+			for t in PhotoCamera.SHUTTERS:
+				for iso in PhotoCamera.ISOS:
+					shot.focal_length_mm = focal
+					shot.aperture_n = n
+					shot.shutter_s = t
+					shot.iso = iso
+					var result := PhotoScoring.score(shot, cfg)
+					if iso <= 400.0:
+						best_low = maxf(best_low, result.score)
+					if result.score > best.score:
+						best = result
+	_check("dusk at ISO <= 400 tops out at 3 stars (%.3f)" % best_low, PhotoScoring.stars(best_low, cfg) <= 3)
+	_check("dusk 5 stars is reachable (%.3f)" % best.score, best.stars == 5)
+	_check("dusk 5 stars costs grain or blur", best.noise < 1.0 or best.motion < 1.0 or best.focus < 1.0)
+
+
+func _test_briefs() -> void:
+	var at_least := BriefRequirement.new()
+	at_least.metric = "noise"
+	at_least.value = 0.5
+	_check("requirement passes at the line", at_least.evaluate({"noise": 0.5}))
+	_check("requirement fails below it", not at_least.evaluate({"noise": 0.49}))
+	_check("requirement fails on a missing metric", not at_least.evaluate({}))
+	var at_most := BriefRequirement.new()
+	at_most.metric = "motion_blur_mm"
+	at_most.op = BriefRequirement.Op.AT_MOST
+	at_most.value = 0.1
+	_check("at-most requirement", at_most.evaluate({"motion_blur_mm": 0.05}) and not at_most.evaluate({"motion_blur_mm": 0.2}))
+
+	var dusk: Brief = load("res://resources/briefs/r2_dusk.tres")
+	_check("dusk brief loads with its requirement", dusk.requirements.size() == 1 and dusk.requirements[0].required and dusk.config.noise_weight > 0.0)
+	_check("dusk: ISO 1600 counts, 3200 doesn't", dusk.meets_required({"noise": PhotoScoring.noise_score(1600.0, dusk.config)}) and not dusk.meets_required({"noise": PhotoScoring.noise_score(3200.0, dusk.config)}))
+	var bird: Brief = load("res://resources/briefs/r3_bird.tres")
+	_check("bird brief: best of 8 with an optional bonus", bird.win_mode == Brief.WinMode.BEST_OF and bird.shot_limit == 8 and bird.has_bonus() and bird.meets_required({}))
+
+	var runner := RoundRunner.new([bird] as Array[Brief])
+	runner.restart()
+	for stars in [1, 3, 2, 1, 0, 0, 0]:
+		runner.record({"stars": stars, "motion": 0.5})
+	_check("best-of waits for the last frame", runner.state == RoundRunner.State.PLAYING and runner.best_stars == 3)
+	runner.record({"stars": 0, "motion": 0.0})
+	_check("best-of wins on the best frame, no bonus without a frozen one", runner.state == RoundRunner.State.WON and not runner.bonus_met and runner.total_reward() == bird.reward)
+	runner.advance()
+	_check("one brief done ends the run", runner.state == RoundRunner.State.DONE)
+
+
 func _reference_shot() -> ShotData:
 	var shot := ShotData.new()
 	shot.aperture_n = 5.6
@@ -170,6 +256,27 @@ func _test_coach() -> void:
 	_check("coach is all ok once fixed", PhotoCoach.all_ok(fixed))
 	var lowered := PhotoCoach.advice(PhotoScoring.score(shot, _cfg), shot, PhotoCamera.Setting.ISO, true, false)
 	_check("lowered camera: coach asks to raise it first", lowered.size() == 2 and not lowered[0].ok and "Raise your camera" in lowered[0].text and lowered[1].pillar == "exposure")
+	_check("default config: no motion or noise lines", PhotoCoach.advice(PhotoScoring.score(shot, _cfg), shot, PhotoCamera.Setting.ISO, true, true, _cfg).size() == 4)
+
+	var bird := ScoringConfig.new()
+	bird.motion_weight = 0.4
+	bird.noise_weight = 0.2
+	var fast := _reference_shot()
+	fast.subject_speed_mps = 10.0
+	fast.subject_distance_m = 20.0
+	fast.focus_distance_m = 20.0
+	fast.focal_length_mm = 200.0
+	fast.iso = 3200.0
+	fast.scene_ev = PhotoScoring.exposure_value(fast.aperture_n, fast.shutter_s, fast.iso)
+	var bird_lines := PhotoCoach.advice(PhotoScoring.score(fast, bird), fast, PhotoCamera.Setting.SHUTTER, true, true, bird)
+	_check("weighted motion and noise get coach lines", bird_lines.size() == 6 and bird_lines[3].pillar == "motion" and bird_lines[4].pillar == "noise")
+	_check("motion line names the shutter to use (%s)" % bird_lines[3].text, not bird_lines[3].ok and "1/2000 or faster" in bird_lines[3].text and "scroll SHUTTER faster" in bird_lines[3].text)
+	_check("noise line points at ISO", not bird_lines[4].ok and "ISO 3200" in bird_lines[4].text and "pick ISO (1)" in bird_lines[4].text)
+	fast.shutter_s = 1.0 / 2000.0
+	fast.iso = 400.0
+	fast.scene_ev = PhotoScoring.exposure_value(fast.aperture_n, fast.shutter_s, fast.iso)
+	var frozen := PhotoCoach.advice(PhotoScoring.score(fast, bird), fast, PhotoCamera.Setting.SHUTTER, true, true, bird)
+	_check("motion and noise lines go green once fixed", frozen[3].ok and frozen[4].ok)
 	_check("coach asks to find the subject", PhotoCoach.advice(PhotoScoring.score(shot, _cfg), shot, PhotoCamera.Setting.ISO, false)[0].text.begins_with("Find"))
 
 

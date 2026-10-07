@@ -21,7 +21,10 @@ There are no image textures (PNG/SVG) for UI yet. Everything below is drawn in c
 | "Turn me" arrows | `setting_dial.gd` (`_draw_turn_arrows`) | Curved gold double-headed arrow over the selected dial | Selected dial |
 | Star row | `scripts/ui/star_row.gd` | Five drawn stars, gold when filled, grey outline when empty, with a pop animation | Bottom of the polaroid during the shot reveal |
 | Polaroid | `scenes/sandbox/scoring_sandbox.tscn` (`HUD/Overlay/Polaroid`) + `photo_hud.gd` | Off-white card with the captured photo and the star row. Drops in from the top with a tilt | After each shot (top-right) |
-| Pillar bars ×4 (Focus, Exposure, Framing, In view) | `scripts/ui/photo_hud.gd` (`_build_bars`) | Rounded progress bars, green/yellow/red by score, with the weakest pillar's name highlighted | After each shot (left) |
+| Pillar bars, up to 6 (Focus, Exposure, Framing, Motion, Noise, In view) | `scripts/ui/photo_hud.gd` (`_build_bars`) | Rounded progress bars, green/yellow/red by score, with the weakest pillar's name highlighted. A pillar with weight 0 in the brief is hidden | After each shot (left) |
+| Brief card / summary card | `photo_hud.gd` (`_build_card`) | Dark rounded panel, centered, with a yellow title and wrapped body text | At the start of each brief (hidden when the camera is raised), and at the end of the run (stays up until the next shot) |
+| Sensor grain | `scripts/ui/grain_overlay.gd` + `resources/shaders/grain.gdshader` | Full-screen animated noise, stronger in shadows, with color blotches at ISO 12800. Kept in the polaroid | Viewfinder, at ISO 800 and above |
+| Motion blur trail | `scripts/photo/motion_trail.gd` (3D, not HUD) | See-through copies of a moving subject along its path during the exposure | Viewfinder, when shutter × speed is long enough |
 | Focus bracket | `photo_hud.gd` (`_draw_focus_bracket`) | Four corner brackets at the center: white while driving, green on lock, red on fail | Viewfinder |
 | Rule-of-thirds guides | `photo_hud.gd` (`_draw`) | Thin white grid lines | Viewfinder |
 | Framing zones ×5 | `photo_hud.gd` (`_draw`) | Ellipses marking the full-marks framing areas | Viewfinder |
@@ -34,8 +37,8 @@ All text uses Font V1.
 
 | Text | Node | Style | When it shows |
 |---|---|---|---|
-| Round brief ("Get a 4-star shot…", "YOU WIN!") | `BriefLabel` | 30 px, outlined, centered at the top, green on win, red on loss | Always |
-| Coach checklist (FIX / OK lines) | `Coach` (RichTextLabel) | 16 px, colored tags | First round |
+| Brief line ("The Wanderer · Get a 4-star shot in 5 · 3 shots left", "BRIEF COMPLETE!") | `BriefLabel` | 30 px, outlined, centered at the top, green on win, red on loss | Always |
+| Coach checklist (FIX / OK lines) | `Coach` (RichTextLabel) | 16 px, colored tags | First attempt at a coached brief (Round 1) |
 | Tip ("Focus landed 3.9 m in front…") | `Result/TipLabel` | 22 px, yellow | After each shot |
 | Focus readout and controls hint | `SettingsLabel` | 13 px, above the dials | Always (text changes per mode) |
 | "Hold RMB to raise your camera" nudge | `NudgeLabel` | 22 px, yellow, fades out | Shooting with the camera lowered |

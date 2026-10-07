@@ -5,7 +5,8 @@ extends Control
 ## Plus the round brief, the coach, and the shot reveal (polaroid, stars, bars, tip).
 
 ## Pillar keys from PhotoScoring.score() and their plain-language names.
-const PILLARS := [["focus", "Focus"], ["exposure", "Exposure"], ["placement", "Framing"], ["gate", "In view"]]
+## Weighted pillars whose weight is 0 in the active config are hidden.
+const PILLARS := [["focus", "Focus"], ["exposure", "Exposure"], ["placement", "Framing"], ["motion", "Motion"], ["noise", "Noise"], ["gate", "In view"]]
 const GOOD := Color(0.45, 0.85, 0.4)
 const OKAY := Color(0.95, 0.8, 0.3)
 const BAD := Color(0.95, 0.4, 0.35)
@@ -35,6 +36,10 @@ var _shot_id := 0
 var _viewfinder := true
 var _focus_state := PhotoCamera.FocusState.IDLE
 var _dial_tween: Tween
+var _card: PanelContainer
+var _card_title: Label
+var _card_body: Label
+var _card_sticky := false
 
 @onready var _settings_label: Label = $SettingsLabel
 @onready var _dial_row: HBoxContainer = $Dials
@@ -54,6 +59,7 @@ func _ready() -> void:
 	resized.connect(queue_redraw)
 	resized.connect(_update_dial_pivot)
 	_build_bars()
+	_build_card()
 	clear_result()
 	_nudge_label.modulate.a = 0.0
 
@@ -105,6 +111,8 @@ func _draw_focus_bracket(c: Vector2) -> void:
 ## Switches the overlay between exploring and looking through the camera.
 func set_viewfinder(on: bool) -> void:
 	_viewfinder = on
+	if on and not _card_sticky:
+		hide_card()  # raising the camera means the brief has been read
 	queue_redraw()
 	_update_dial_pivot()
 	if _dial_tween:
@@ -135,6 +143,72 @@ func nudge(text: String) -> void:
 
 func _update_dial_pivot() -> void:
 	_dial_row.pivot_offset = Vector2(_dial_row.size.x * 0.5, _dial_row.size.y)
+
+
+## Uses a brief's scoring config: framing zones in the viewfinder, and a result
+## bar for every pillar it weighs (plus the "In view" gate).
+func set_config(cfg: ScoringConfig) -> void:
+	placement_targets = cfg.placement_targets
+	placement_ok_radius = cfg.placement_ok_radius
+	for key in _bars:
+		var shown: bool = key == "gate" or cfg.weight(key) > 0.0
+		_bars[key].visible = shown
+		_bar_names[key].visible = shown
+
+
+## True if the result panel has a bar for this pillar.
+func has_bar(pillar: String) -> bool:
+	return _bars.has(pillar) and _bars[pillar].visible
+
+
+## A centered card: the brief at its start, or the end-of-run summary. A sticky
+## card stays up when the camera is raised; any card goes on the next shot.
+func show_card(title: String, body: String, sticky := false) -> void:
+	_card_title.text = title
+	_card_body.text = body
+	_card_sticky = sticky
+	_card.visible = true
+
+
+func hide_card() -> void:
+	_card.visible = false
+	_card_sticky = false
+
+
+func is_card_visible() -> bool:
+	return _card.visible
+
+
+func card_text() -> String:
+	return _card_title.text + "\n" + _card_body.text
+
+
+func _build_card() -> void:
+	_card = PanelContainer.new()
+	_card.name = "Card"
+	_card.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_card.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	_card.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	_card.grow_vertical = Control.GROW_DIRECTION_BOTH
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.08, 0.08, 0.1, 0.88)
+	style.set_corner_radius_all(10)
+	style.set_content_margin_all(24)
+	_card.add_theme_stylebox_override("panel", style)
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 12)
+	_card.add_child(box)
+	_card_title = Label.new()
+	_card_title.add_theme_font_size_override("font_size", 28)
+	_card_title.add_theme_color_override("font_color", OKAY)
+	box.add_child(_card_title)
+	_card_body = Label.new()
+	_card_body.add_theme_font_size_override("font_size", 18)
+	_card_body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_card_body.custom_minimum_size = Vector2(560, 0)
+	box.add_child(_card_body)
+	add_child(_card)
+	_card.visible = false
 
 
 func show_brief(text: String, color := Color.WHITE) -> void:

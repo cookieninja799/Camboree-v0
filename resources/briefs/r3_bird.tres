@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="Brief" load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/briefs/brief.gd" id="1_brief"]
+[ext_resource type="Resource" path="res://resources/scoring/bird_scoring_config.tres" id="2_cfg"]
+[ext_resource type="Script" path="res://scripts/briefs/brief_requirement.gd" id="3_req"]
+
+[sub_resource type="Resource" id="Requirement_motion"]
+script = ExtResource("3_req")
+metric = "motion"
+value = 0.8
+required = false
+label = "Bonus: freeze it completely (Motion 0.8+)"
+
+[resource]
+script = ExtResource("1_brief")
+title = "Bird in Flight"
+ask = "A bird keeps buzzing the field. Catch it mid-flight. Zoom in and use a fast shutter. You get 8 frames, and I'll take the best."
+target_stars = 3
+shot_limit = 8
+win_mode = 1
+config = ExtResource("2_cfg")
+requirements = Array[ExtResource("3_req")]([SubResource("Requirement_motion")])
+reward = 200
+bonus_reward = 100
+subject_behavior = 2

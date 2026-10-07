@@ -51,10 +51,26 @@ A 5 m/s runner at 10 m with an 85 mm lens:
 - Gear is **not** a score multiplier. Gear unlocks briefs (see the GDD).
 
 - **v1:** motion and noise joined as weighted pillars, not gates. Per-brief weights reuse `ScoringConfig` (one `.tres` per brief) instead of a separate weights dictionary. The score already divides by `Σw`, so the weights don't need to sum to 1. The ISO dial now reaches 12800, and the shutter dial already reached 1/4000.
+- **Motion blur visual (Phase 2.1 decision): a ghost trail.** `MotionTrail` draws see-through copies of the subject's meshes along `−velocity · shutter` in world space, the same `v·t` the pillar scores. Copies are faded with `GeometryInstance3D.transparency`, so materials stay untouched. It's drawn in 3D, so it works in both the viewfinder and the polaroid grab without a post-process pass, and it shows only while the camera is raised. The fallback, a `CompositorEffect` directional blur with a subject mask, would look smoother but needs a subject mask pass and its own shader. Revisit it if the ghosts read as "clones" in playtests.
+- **Grain:** `GrainOverlay` is a full-screen shader on its own CanvasLayer (layer 0, under the HUD), with strength `1 − Noise`, so the frame grab keeps it. Above the noise pillar's floor (ISO 12800) it adds color blotches, so the top ISO still looks worse than 6400. Like motion blur, it shows only through the raised camera.
 - Camera panning doesn't reduce the smear yet. `PhotoCamera.cross_frame_speed()` is where the camera's own motion would be subtracted.
+
+## Briefs
+
+A `Brief` (`scripts/briefs/brief.gd`, `.tres` files in `resources/briefs/`) holds the client's ask, a `ScoringConfig` with that client's weights, the goal (`target_stars` within `shot_limit`, or best of N with `win_mode = BEST_OF`), `BriefRequirement`s, the reward, and the scene (scene EV, sun, sky, `render_gain`, and subject behavior). A required requirement decides whether a shot counts at all. Optional ones earn the bonus. `RoundRunner` plays the briefs in order: brief card → shoot → result → next brief. A loss retries the same brief, and the last win shows a summary.
+
+| Brief | Goal | Weights F/E/P/M/N | Requirement | Scene |
+|---|---|---|---|---|
+| R1 The Wanderer | 4★ in 5 | 0.5 / 0.3 / 0.2 / 0 / 0 | – | EV 13, sine wanderer (coach, scrambled settings) |
+| R2 Dusk Portrait | 4★ in 6 | 0.3 / 0.25 / 0.15 / 0.2 / 0.1 | Noise ≥ 0.5 (ISO ≤ 1600), required | EV 2, slow sway (0.4 m/s peak) |
+| R3 Bird in Flight | best of 8 ≥ 3★ | 0.3 / 0.2 / 0.1 / 0.4 / 0 | Motion ≥ 0.8, bonus | EV 13, flyer: 8–12 m/s passes 4–8 m up, 2–5 s gaps |
+
+Tuning checks in `tests/test_scoring.gd`:
+- **Dusk:** sweeping every setting at 50/85/135 mm (subject at 4 m, swaying 0.4 m/s, focus 0.15 m off), ISO ≤ 400 tops out at 0.776 (3★). 5★ (0.926) needs about ISO 1600, so the player has to accept some grain.
+- **Bird:** at 10 m/s, 15 m out, on 200 mm, 1/500 gives Motion 0.06 and 1/1000 gives 0.92. A clean freeze needs 1/1000 or faster.
 
 ## Not yet scored (next candidates)
 
 - Subject size in frame and edge cropping.
-- Briefs: per-client weights and requirements ("blurred background", "3 birds").
+- More brief requirements ("blurred background", "3 birds").
 - Tagged composition helpers: leading lines, balance, repetition, and color harmony.

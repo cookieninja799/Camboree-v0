@@ -11,8 +11,9 @@ const GOOD := 0.8
 ## One entry per pillar: { "pillar": String, "ok": bool, "text": String }.
 ## `subject_found` is false when no subject is in view at all. `raised` is false
 ## while the player is exploring with the camera lowered: then the coach asks them
-## to raise it, but exposure can already be fixed ahead of time.
-static func advice(result: Dictionary, shot: ShotData, selected: PhotoCamera.Setting, subject_found: bool, raised := true) -> Array[Dictionary]:
+## to raise it, but exposure can already be fixed ahead of time. With a `cfg`,
+## motion and noise get lines too when the config weighs them.
+static func advice(result: Dictionary, shot: ShotData, selected: PhotoCamera.Setting, subject_found: bool, raised := true, cfg: ScoringConfig = null) -> Array[Dictionary]:
 	var lines: Array[Dictionary] = []
 	if not raised:
 		lines.append(_line("raise", false, "Raise your camera: hold RMB (LT)"))
@@ -29,6 +30,12 @@ static func advice(result: Dictionary, shot: ShotData, selected: PhotoCamera.Set
 		"Focus" if result.focus >= GOOD else focus_hint(shot)))
 	lines.append(_line("placement", result.placement >= GOOD,
 		"Framing" if result.placement >= GOOD else "Framing: put the wanderer's head inside one of the circles"))
+	if cfg and cfg.motion_weight > 0.0:
+		lines.append(_line("motion", result.motion >= GOOD,
+			"Motion" if result.motion >= GOOD else motion_hint(shot, selected, cfg)))
+	if cfg and cfg.noise_weight > 0.0:
+		lines.append(_line("noise", result.noise >= GOOD,
+			"Noise" if result.noise >= GOOD else noise_hint(shot, selected)))
 	lines.append(_line("gate", result.gate >= GOOD,
 		"In view" if result.gate >= GOOD else "In view: part of the wanderer is hidden or out of frame"))
 	return lines
@@ -61,6 +68,26 @@ static func focus_hint(shot: ShotData) -> String:
 	return "Focus: at %.1f m, but the wanderer is %.1f m away · press Shift to autofocus, or turn the FOCUS dial" % [
 		shot.focus_distance_m, shot.subject_distance_m,
 	]
+
+
+## The subject is moving too fast for the shutter.
+static func motion_hint(shot: ShotData, selected: PhotoCamera.Setting, cfg: ScoringConfig) -> String:
+	var needed := PhotoScoring.dial_shutter_at_most(PhotoScoring.freeze_shutter_s(shot.focal_length_mm, shot.subject_distance_m, shot.subject_speed_mps, cfg))
+	var problem := "Motion: subject is moving, it needs %s or faster" % PhotoScoring.format_shutter(needed)
+	if selected == PhotoCamera.Setting.SHUTTER:
+		return problem + " · scroll SHUTTER faster (up)"
+	return problem + " · pick SHUTTER (2)"
+
+
+## Too much ISO. Lowering it darkens the shot, so pair it with a wider aperture.
+static func noise_hint(shot: ShotData, selected: PhotoCamera.Setting) -> String:
+	var problem := "Noise: grainy at ISO %d" % roundi(shot.iso)
+	match selected:
+		PhotoCamera.Setting.ISO:
+			return problem + " · scroll ISO down, then open the APERTURE to keep it bright"
+		PhotoCamera.Setting.APERTURE:
+			return problem + " · open the APERTURE (scroll down) so ISO can come down"
+	return problem + " · pick ISO (1) and lower it"
 
 
 static func _line(pillar: String, ok: bool, text: String) -> Dictionary:

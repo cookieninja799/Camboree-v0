@@ -38,6 +38,13 @@ const AF_MOTOR_SOUND_GAP := 0.09
 		scene_ev = value
 		_apply()
 
+## Brightens the rendered image without touching the grade, so a correctly
+## exposed dim scene (dusk) doesn't look murky on screen.
+@export var render_gain := 1.0:
+	set(value):
+		render_gain = value
+		_apply()
+
 ## How fast the autofocus motor racks the lens, in diopters per second.
 ## 6 takes a 0.5 m -> 7 m rack about 0.3 s.
 @export var af_speed_diopters := 6.0
@@ -255,7 +262,7 @@ func pick_subject() -> PhotoSubject:
 	var center := get_viewport().get_visible_rect().size * 0.5
 	for node in get_tree().get_nodes_in_group(PhotoSubject.GROUP):
 		var subject := node as PhotoSubject
-		if subject == null or not is_position_in_frustum(subject.key_point()):
+		if subject == null or not subject.is_present() or not is_position_in_frustum(subject.key_point()):
 			continue
 		var dist := unproject_position(subject.key_point()).distance_to(center)
 		if dist < best_dist:
@@ -401,5 +408,5 @@ func _apply() -> void:
 	# Without physical light units Godot ignores aperture/shutter/ISO for brightness,
 	# so drive brightness from the same EV error the scorer uses.
 	var ev_err := PhotoScoring.ev_error(aperture, shutter_s, iso, scene_ev)
-	attrs.exposure_multiplier = clampf(pow(2.0, -ev_err), 1.0 / 32.0, 32.0)
+	attrs.exposure_multiplier = clampf(pow(2.0, -ev_err), 1.0 / 32.0, 32.0) * render_gain
 	settings_changed.emit()
